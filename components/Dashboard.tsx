@@ -1,9 +1,12 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
+import AssetEntryForm from "./AssetEntryForm";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const [activeView, setActiveView] = useState<"none" | "register" | "consult">("none");
 
   if (!user) return null;
 
@@ -53,7 +56,7 @@ export default function Dashboard() {
           <div className="action-grid">
             <button
               className="action-card glass"
-              onClick={() => alert("Próximo paso: formulario para registrar activo")}
+              onClick={() => setActiveView("register")}
             >
               <span className="action-icon">➕</span>
               <h3>Registrar un activo</h3>
@@ -62,7 +65,7 @@ export default function Dashboard() {
 
             <button
               className="action-card glass"
-              onClick={() => alert("Próximo paso: búsqueda y consulta de activos")}
+              onClick={() => setActiveView("consult")}
             >
               <span className="action-icon">🔎</span>
               <h3>Consultar por un activo</h3>
@@ -70,6 +73,15 @@ export default function Dashboard() {
             </button>
           </div>
         </section>
+
+        {activeView === "register" && <AssetEntryForm createdByEmail={user.email} />}
+
+        {activeView === "consult" && (
+          <section className="asset-panel glass">
+            <h3>Consultar activo</h3>
+            <p className="placeholder-text">Próximo paso: vista de búsqueda y detalle conectada a D1.</p>
+          </section>
+        )}
 
         <section className="data-section">
           <div className="dashboard-grid">
