@@ -257,6 +257,45 @@ body {
     align-items: flex-start;
     border: 1px solid rgba(148, 163, 184, 0.2);
     background: rgba(15, 23, 42, 0.55);
+    position: relative;
+    overflow: hidden;
+}
+
+.stat-card::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: rgba(148, 163, 184, 0.4);
+}
+
+.stat-total {
+    background: linear-gradient(165deg, rgba(30, 64, 175, 0.35), rgba(15, 23, 42, 0.78));
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
+.stat-total::before {
+    background: #60a5fa;
+}
+
+.stat-responsibility {
+    background: linear-gradient(165deg, rgba(180, 83, 9, 0.3), rgba(15, 23, 42, 0.78));
+    border-color: rgba(251, 191, 36, 0.33);
+}
+
+.stat-responsibility::before {
+    background: #f59e0b;
+}
+
+.stat-requested {
+    background: linear-gradient(165deg, rgba(5, 150, 105, 0.3), rgba(15, 23, 42, 0.78));
+    border-color: rgba(52, 211, 153, 0.33);
+}
+
+.stat-requested::before {
+    background: #34d399;
 }
 
 .stat-card h4 {
@@ -271,6 +310,7 @@ body {
 .stat-value {
     font-size: 1.35rem;
     font-weight: 800;
+    color: #f8fafc;
 }
 
 .text-accent {

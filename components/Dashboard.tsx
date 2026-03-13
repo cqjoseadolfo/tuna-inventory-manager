@@ -73,17 +73,17 @@ export default function Dashboard() {
 
         <section className="data-section">
           <div className="dashboard-grid">
-            <div className="stat-card glass">
+            <div className="stat-card stat-total" style={{ flex: `${Math.max(totalAssets, 1)} 1 0` }}>
               <h4>Total activos</h4>
               <span className="stat-value">{totalAssets}</span>
             </div>
-            <div className="stat-card glass">
+            <div className="stat-card stat-responsibility" style={{ flex: `${Math.max(onLoanAssets, 1)} 1 0` }}>
               <h4>Bajo responsabilidad</h4>
-              <span className="stat-value text-accent">{onLoanAssets}</span>
+              <span className="stat-value">{onLoanAssets}</span>
             </div>
-            <div className="stat-card glass">
+            <div className="stat-card stat-requested" style={{ flex: `${Math.max(availableAssets, 1)} 1 0` }}>
               <h4>Solicitados</h4>
-              <span className="stat-value text-success">{availableAssets}</span>
+              <span className="stat-value">{availableAssets}</span>
             </div>
           </div>
         </section>
