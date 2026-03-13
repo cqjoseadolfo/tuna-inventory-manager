@@ -7,6 +7,27 @@ export default function Dashboard() {
 
   if (!user) return null;
 
+  const tagSummary = [
+    { tag: "#instrumentos", count: 14, color: "#60a5fa" },
+    { tag: "#reconocimientos", count: 5, color: "#f59e0b" },
+    { tag: "#trofeos", count: 3, color: "#a78bfa" },
+    { tag: "#uniformes", count: 2, color: "#34d399" },
+  ];
+
+  const totalAssets = tagSummary.reduce((acc, item) => acc + item.count, 0);
+  const onLoanAssets = 5;
+  const availableAssets = Math.max(totalAssets - onLoanAssets, 0);
+
+  const donutStops = tagSummary
+    .map((item, index, arr) => {
+      const start = arr.slice(0, index).reduce((acc, current) => acc + current.count, 0);
+      const end = start + item.count;
+      const startPct = ((start / totalAssets) * 100).toFixed(2);
+      const endPct = ((end / totalAssets) * 100).toFixed(2);
+      return `${item.color} ${startPct}% ${endPct}%`;
+    })
+    .join(", ");
+
   return (
     <div className="dashboard-container">
       <header className="dashboard-header glass">
@@ -51,17 +72,56 @@ export default function Dashboard() {
         <div className="dashboard-grid">
           <div className="stat-card glass">
             <h4>Total activos</h4>
-            <span className="stat-value">24</span>
+            <span className="stat-value">{totalAssets}</span>
           </div>
           <div className="stat-card glass">
             <h4>En préstamo</h4>
-            <span className="stat-value text-accent">5</span>
+            <span className="stat-value text-accent">{onLoanAssets}</span>
           </div>
           <div className="stat-card glass">
             <h4>Disponibles</h4>
-            <span className="stat-value text-success">19</span>
+            <span className="stat-value text-success">{availableAssets}</span>
           </div>
         </div>
+
+        <section className="tag-summary glass">
+          <div className="tag-summary-header">
+            <h3>Resumen gráfico por etiquetas</h3>
+            <p className="placeholder-text">Distribución actual de activos del grupo por categorías.</p>
+          </div>
+
+          <div className="tag-summary-content">
+            <div
+              className="donut-chart"
+              style={{
+                background: `conic-gradient(${donutStops})`,
+              }}
+            >
+              <div className="donut-center">
+                <span>Total</span>
+                <strong>{totalAssets}</strong>
+              </div>
+            </div>
+
+            <div className="tag-legend">
+              {tagSummary.map((item) => {
+                const percentage = ((item.count / totalAssets) * 100).toFixed(1);
+                return (
+                  <div key={item.tag} className="tag-row">
+                    <div className="tag-label-group">
+                      <span className="tag-dot" style={{ backgroundColor: item.color }}></span>
+                      <span className="tag-name">{item.tag}</span>
+                    </div>
+                    <div className="tag-values">
+                      <strong>{item.count}</strong>
+                      <span>{percentage}%</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </section>
 
         <div className="recent-activity glass">
           <h3>Actividad Reciente</h3>
