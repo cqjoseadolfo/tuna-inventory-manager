@@ -46,43 +46,47 @@ export default function Dashboard() {
       </header>
       
       <main className="dashboard-content">
-        <h2>¿Qué deseas hacer hoy?</h2>
-        <p className="placeholder-text">Elige una acción para comenzar a gestionar los activos.</p>
+        <section className="actions-section">
+          <h2>¿Qué deseas hacer hoy?</h2>
+          <p className="placeholder-text">Elige una acción para comenzar a gestionar los activos.</p>
 
-        <div className="action-grid">
-          <button
-            className="action-card glass"
-            onClick={() => alert("Próximo paso: formulario para registrar activo")}
-          >
-            <span className="action-icon">➕</span>
-            <h3>Registrar un activo</h3>
-            <p>Crear una nueva ficha de instrumento o recurso del inventario.</p>
-          </button>
+          <div className="action-grid">
+            <button
+              className="action-card glass"
+              onClick={() => alert("Próximo paso: formulario para registrar activo")}
+            >
+              <span className="action-icon">➕</span>
+              <h3>Registrar un activo</h3>
+              <p>Crear una nueva ficha de instrumento o recurso del inventario.</p>
+            </button>
 
-          <button
-            className="action-card glass"
-            onClick={() => alert("Próximo paso: búsqueda y consulta de activos")}
-          >
-            <span className="action-icon">🔎</span>
-            <h3>Consultar por un activo</h3>
-            <p>Buscar por nombre, código o estado para ver su detalle.</p>
-          </button>
-        </div>
+            <button
+              className="action-card glass"
+              onClick={() => alert("Próximo paso: búsqueda y consulta de activos")}
+            >
+              <span className="action-icon">🔎</span>
+              <h3>Consultar por un activo</h3>
+              <p>Buscar por nombre, código o estado para ver su detalle.</p>
+            </button>
+          </div>
+        </section>
 
-        <div className="dashboard-grid">
-          <div className="stat-card glass">
-            <h4>Total activos</h4>
-            <span className="stat-value">{totalAssets}</span>
+        <section className="data-section">
+          <div className="dashboard-grid">
+            <div className="stat-card glass">
+              <h4>Total activos</h4>
+              <span className="stat-value">{totalAssets}</span>
+            </div>
+            <div className="stat-card glass">
+              <h4>Bajo responsabilidad</h4>
+              <span className="stat-value text-accent">{onLoanAssets}</span>
+            </div>
+            <div className="stat-card glass">
+              <h4>Solicitados</h4>
+              <span className="stat-value text-success">{availableAssets}</span>
+            </div>
           </div>
-          <div className="stat-card glass">
-            <h4>En préstamo</h4>
-            <span className="stat-value text-accent">{onLoanAssets}</span>
-          </div>
-          <div className="stat-card glass">
-            <h4>Disponibles</h4>
-            <span className="stat-value text-success">{availableAssets}</span>
-          </div>
-        </div>
+        </section>
 
         <section className="tag-summary glass">
           <div className="tag-summary-header">
