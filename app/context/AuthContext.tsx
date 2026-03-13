@@ -41,25 +41,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Initialize Google Auth Token Client
+    // Fallback: si el script de Google no carga en 8s, quitamos el loading igualmente
+    const safetyTimeout = setTimeout(() => setIsLoading(false), 8000);
+
     const initGoogleAuth = () => {
       if (typeof window !== "undefined" && (window as any).google) {
-        const client = (window as any).google.accounts.oauth2.initTokenClient({
-          client_id: GOOGLE_CLIENT_ID,
-          scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
-          callback: (tokenResponse: any) => {
-            if (tokenResponse && tokenResponse.access_token) {
-              fetchUserProfile(tokenResponse.access_token);
-            }
-          },
-        });
-        setTokenClient(client);
-        setIsLoading(false);
+        try {
+          const client = (window as any).google.accounts.oauth2.initTokenClient({
+            client_id: GOOGLE_CLIENT_ID,
+            scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
+            callback: (tokenResponse: any) => {
+              if (tokenResponse && tokenResponse.access_token) {
+                fetchUserProfile(tokenResponse.access_token);
+              }
+            },
+          });
+          setTokenClient(client);
+        } catch (e) {
+          console.error("Error initializing Google Auth client:", e);
+        } finally {
+          clearTimeout(safetyTimeout);
+          setIsLoading(false);
+        }
       } else {
         setTimeout(initGoogleAuth, 500);
       }
     };
 
     initGoogleAuth();
+
+    return () => clearTimeout(safetyTimeout);
   }, []);
 
   const fetchUserProfile = async (accessToken: string) => {
