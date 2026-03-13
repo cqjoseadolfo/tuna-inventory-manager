@@ -10,25 +10,27 @@ export default function Home() {
 
   if (isLoading) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-900">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      <main className="loading-screen">
+        <div className="loading-spinner"></div>
+        <p className="muted-text">Cargando Tuna Inventory...</p>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-24 bg-gray-900">
+    <main className="app-shell">
       {user ? (
         <>
           <Dashboard />
           <OnboardingModal />
         </>
       ) : (
-        <div className="bg-gray-800 p-8 rounded-2xl shadow-xl max-w-sm w-full text-center border border-gray-700">
-          <h1 className="text-3xl font-bold mb-6 text-white">Tuna Inventory</h1>
-          <p className="text-gray-400 mb-8">Inicia sesión para acceder.</p>
+        <section className="auth-card">
+          <p className="eyebrow">Sistema de inventario</p>
+          <h1 className="section-title">Tuna Inventory</h1>
+          <p className="muted-text">Inicia sesión con Google para entrar al panel.</p>
           <GoogleAuthButton />
-        </div>
+        </section>
       )}
     </main>
   );

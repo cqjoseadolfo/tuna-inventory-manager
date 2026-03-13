@@ -12,6 +12,7 @@ export default function Dashboard() {
       <header className="dashboard-header glass">
         <div className="logo-area">
           <h3>Tuna Inventory</h3>
+          <p className="muted-text">Control de activos musicales</p>
         </div>
         <div className="user-profile">
           <div className="user-details">
@@ -24,16 +25,36 @@ export default function Dashboard() {
       </header>
       
       <main className="dashboard-content">
-        <h2>Panel de Inventario</h2>
-        
+        <h2>¿Qué deseas hacer hoy?</h2>
+        <p className="placeholder-text">Elige una acción para comenzar a gestionar los activos.</p>
+
+        <div className="action-grid">
+          <button
+            className="action-card glass"
+            onClick={() => alert("Próximo paso: formulario para registrar activo")}
+          >
+            <span className="action-icon">➕</span>
+            <h3>Registrar un activo</h3>
+            <p>Crear una nueva ficha de instrumento o recurso del inventario.</p>
+          </button>
+
+          <button
+            className="action-card glass"
+            onClick={() => alert("Próximo paso: búsqueda y consulta de activos")}
+          >
+            <span className="action-icon">🔎</span>
+            <h3>Consultar por un activo</h3>
+            <p>Buscar por nombre, código o estado para ver su detalle.</p>
+          </button>
+        </div>
+
         <div className="dashboard-grid">
-          {/* Mock stats cards, we will expand this */}
           <div className="stat-card glass">
-            <h4>Total Instrumentos</h4>
+            <h4>Total activos</h4>
             <span className="stat-value">24</span>
           </div>
           <div className="stat-card glass">
-            <h4>En Préstamo</h4>
+            <h4>En préstamo</h4>
             <span className="stat-value text-accent">5</span>
           </div>
           <div className="stat-card glass">
