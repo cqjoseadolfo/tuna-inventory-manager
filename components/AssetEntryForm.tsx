@@ -10,12 +10,8 @@ interface Props {
 
 interface FormState {
   assetType: AssetType;
-  name: string;
+  assetCode: string;
   photoUrl: string;
-  currentValue: string;
-  status: "disponible" | "bajo_responsabilidad" | "solicitado" | "mantenimiento";
-  notes: string;
-  tags: string;
   instrumentType: string;
   brand: string;
   fabricationYear: string;
@@ -31,12 +27,8 @@ interface FormState {
 
 const initialState: FormState = {
   assetType: "instrumento",
-  name: "",
+  assetCode: "",
   photoUrl: "",
-  currentValue: "",
-  status: "disponible",
-  notes: "",
-  tags: "",
   instrumentType: "",
   brand: "",
   fabricationYear: "",
@@ -55,17 +47,47 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<string>("");
   const [error, setError] = useState<string>("");
+  const [photoName, setPhotoName] = useState("");
 
   const normalizedTags = useMemo(() => {
-    return form.tags
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
-      .map((t) => (t.startsWith("#") ? t.toLowerCase() : `#${t.toLowerCase()}`));
-  }, [form.tags]);
+    const baseTag =
+      form.assetType === "instrumento"
+        ? "#instrumentos"
+        : form.assetType === "reconocimiento"
+          ? "#reconocimientos"
+          : "#uniformes";
+
+    const extraTag =
+      form.assetType === "instrumento" && form.instrumentType.trim()
+        ? `#${form.instrumentType.trim().toLowerCase().replace(/\s+/g, "-")}`
+        : null;
+
+    return [baseTag, extraTag].filter(Boolean) as string[];
+  }, [form.assetType, form.instrumentType]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      setError("Selecciona una imagen válida.");
+      return;
+    }
+
+    setError("");
+    setPhotoName(file.name);
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      update("photoUrl", result);
+    };
+    reader.onerror = () => setError("No se pudo leer la foto seleccionada.");
+    reader.readAsDataURL(file);
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -73,9 +95,8 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     setError("");
     setMessage("");
 
-    if (!form.name.trim()) return setError("Ingresa el nombre del activo.");
-    if (!form.photoUrl.trim()) return setError("Ingresa la foto principal del activo.");
-    if (!form.currentValue.trim()) return setError("Ingresa el valor actual del activo.");
+    if (!form.assetCode.trim()) return setError("Ingresa el código o número de rotulación.");
+    if (!form.photoUrl.trim()) return setError("Toma o selecciona una foto principal del activo.");
 
     if (form.assetType === "instrumento" && (!form.instrumentType.trim() || !form.brand.trim())) {
       return setError("Para instrumento se requiere tipo de instrumento y marca.");
@@ -91,11 +112,12 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assetType: form.assetType,
-          name: form.name.trim(),
+          code: form.assetCode.trim(),
+          name: form.assetCode.trim(),
           photoUrl: form.photoUrl.trim(),
-          currentValue: Number(form.currentValue),
-          status: form.status,
-          notes: form.notes.trim() || null,
+          currentValue: 0,
+          status: "disponible",
+          notes: null,
           tags: normalizedTags,
           createdByEmail,
           instrument:
@@ -131,11 +153,8 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
       if (!response.ok) throw new Error(data.error || "No se pudo registrar el activo.");
 
       setMessage("Activo registrado correctamente.");
-      setForm((prev) => ({
-        ...initialState,
-        assetType: prev.assetType,
-        tags: prev.assetType === "instrumento" ? "#instrumentos" : prev.assetType === "reconocimiento" ? "#reconocimientos" : "#uniformes",
-      }));
+      setPhotoName("");
+      setForm((prev) => ({ ...initialState, assetType: prev.assetType }));
     } catch (err: any) {
       setError(err.message || "Error inesperado.");
     } finally {
@@ -160,38 +179,33 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
           </div>
 
           <div>
-            <label className="input-label">Nombre del activo</label>
-            <input className="input-text" value={form.name} onChange={(e) => update("name", e.target.value)} placeholder="Ej. Guitarra Alhambra" />
-          </div>
-
-          <div>
-            <label className="input-label">Foto principal (URL)</label>
-            <input className="input-text" value={form.photoUrl} onChange={(e) => update("photoUrl", e.target.value)} placeholder="https://..." />
-          </div>
-
-          <div>
-            <label className="input-label">Valor actual</label>
-            <input className="input-text" type="number" min="0" step="0.01" value={form.currentValue} onChange={(e) => update("currentValue", e.target.value)} />
-          </div>
-
-          <div>
-            <label className="input-label">Estado</label>
-            <select className="input-text" value={form.status} onChange={(e) => update("status", e.target.value as FormState["status"])}>
-              <option value="disponible">Disponible</option>
-              <option value="bajo_responsabilidad">Bajo responsabilidad</option>
-              <option value="solicitado">Solicitado</option>
-              <option value="mantenimiento">Mantenimiento</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="input-label">Tags (separados por coma)</label>
-            <input className="input-text" value={form.tags} onChange={(e) => update("tags", e.target.value)} placeholder="#instrumentos, #cuerdas" />
+            <label className="input-label">Código / N° de rotulación</label>
+            <input className="input-text" value={form.assetCode} onChange={(e) => update("assetCode", e.target.value)} placeholder="Ej. TUNA-INS-001" />
           </div>
 
           <div className="field-full">
-            <label className="input-label">Notas</label>
-            <textarea className="input-text" rows={3} value={form.notes} onChange={(e) => update("notes", e.target.value)} placeholder="Observaciones del activo..." />
+            <label className="input-label">Foto principal</label>
+            <label className="photo-picker">
+              <input
+                className="photo-input"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handlePhotoChange}
+              />
+              {form.photoUrl ? (
+                <div className="photo-preview-wrap">
+                  <img src={form.photoUrl} alt="Vista previa del activo" className="photo-preview" />
+                  <span className="helper-text">{photoName || "Foto cargada"}</span>
+                </div>
+              ) : (
+                <div className="photo-placeholder">
+                  <span className="photo-placeholder-icon">📷</span>
+                  <strong>Tomar o seleccionar foto</strong>
+                  <span className="helper-text">Desde la cámara o galería del dispositivo</span>
+                </div>
+              )}
+            </label>
           </div>
         </div>
 

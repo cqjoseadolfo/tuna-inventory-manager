@@ -145,6 +145,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const {
       assetType,
+      code,
       name,
       photoUrl,
       currentValue,
@@ -157,6 +158,7 @@ export async function POST(request: Request) {
       uniform,
     } = body as {
       assetType: AssetType;
+      code?: string;
       name: string;
       photoUrl: string;
       currentValue: number;
@@ -169,8 +171,11 @@ export async function POST(request: Request) {
       uniform?: { size?: string | null; hasCinta?: boolean; hasJubon?: boolean; hasGreguesco?: boolean } | null;
     };
 
-    if (!assetType || !name || !photoUrl || Number.isNaN(Number(currentValue))) {
-      return NextResponse.json({ error: "assetType, name, photoUrl y currentValue son requeridos" }, { status: 400 });
+    const assetIdentifier = String(code || name || "").trim();
+    const parsedCurrentValue = Number(currentValue ?? 0);
+
+    if (!assetType || !assetIdentifier || !photoUrl || Number.isNaN(parsedCurrentValue)) {
+      return NextResponse.json({ error: "assetType, código/nombre y photoUrl son requeridos" }, { status: 400 });
     }
 
     const validTypes = ["instrumento", "reconocimiento", "uniforme"];
@@ -195,9 +200,9 @@ export async function POST(request: Request) {
       .bind(
         assetId,
         assetType,
-        name,
+        assetIdentifier,
         photoUrl,
-        Number(currentValue),
+        parsedCurrentValue,
         status || "disponible",
         notes ?? null,
         createdByUserId
