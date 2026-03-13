@@ -12,9 +12,12 @@ import handler from "vinext/server/app-router-entry";
 interface Env {
   ASSETS: Fetcher;
   DB: any;
-  CLOUDFLARE_ACCOUNT_ID?: string;
-  CLOUDFLARE_IMAGES_API_TOKEN?: string;
-  CLOUDFLARE_API_TOKEN?: string;
+  AWS_ACCESS_KEY_ID?: string;
+  AWS_SECRET_ACCESS_KEY?: string;
+  AWS_REGION?: string;
+  AWS_S3_BUCKET?: string;
+  AWS_S3_ENDPOINT?: string;
+  AWS_S3_PUBLIC_BASE_URL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -42,9 +45,12 @@ export default {
     // Expose bindings to app route handlers running in edge runtime.
     // Route handlers can read globalThis.DB during the request lifecycle.
     (globalThis as any).DB = env.DB;
-    (globalThis as any).CLOUDFLARE_ACCOUNT_ID = env.CLOUDFLARE_ACCOUNT_ID;
-    (globalThis as any).CLOUDFLARE_IMAGES_API_TOKEN = env.CLOUDFLARE_IMAGES_API_TOKEN;
-    (globalThis as any).CLOUDFLARE_API_TOKEN = env.CLOUDFLARE_API_TOKEN;
+    (globalThis as any).AWS_ACCESS_KEY_ID = env.AWS_ACCESS_KEY_ID;
+    (globalThis as any).AWS_SECRET_ACCESS_KEY = env.AWS_SECRET_ACCESS_KEY;
+    (globalThis as any).AWS_REGION = env.AWS_REGION;
+    (globalThis as any).AWS_S3_BUCKET = env.AWS_S3_BUCKET;
+    (globalThis as any).AWS_S3_ENDPOINT = env.AWS_S3_ENDPOINT;
+    (globalThis as any).AWS_S3_PUBLIC_BASE_URL = env.AWS_S3_PUBLIC_BASE_URL;
 
     // Image optimization via Cloudflare Images binding.
     // The parseImageParams validation inside handleImageOptimization

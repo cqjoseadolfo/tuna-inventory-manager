@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { AwsClient } from "aws4fetch";
 
 export const runtime = "edge";
 
@@ -20,50 +21,70 @@ export async function POST(request: Request) {
     }
 
     const env = (globalThis as any).process?.env || {};
-    const accountId = ((globalThis as any).CLOUDFLARE_ACCOUNT_ID || env.CLOUDFLARE_ACCOUNT_ID) as string | undefined;
-    const apiToken = ((globalThis as any).CLOUDFLARE_IMAGES_API_TOKEN || env.CLOUDFLARE_IMAGES_API_TOKEN || env.CLOUDFLARE_API_TOKEN) as
-      | string
-      | undefined;
+    const accessKeyId = ((globalThis as any).AWS_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID) as string | undefined;
+    const secretAccessKey = ((globalThis as any).AWS_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY) as string | undefined;
+    const region = (((globalThis as any).AWS_REGION || env.AWS_REGION) as string | undefined) || "us-east-1";
+    const bucket = ((globalThis as any).AWS_S3_BUCKET || env.AWS_S3_BUCKET) as string | undefined;
+    const endpointOverride = ((globalThis as any).AWS_S3_ENDPOINT || env.AWS_S3_ENDPOINT) as string | undefined;
+    const publicBaseUrl = ((globalThis as any).AWS_S3_PUBLIC_BASE_URL || env.AWS_S3_PUBLIC_BASE_URL) as string | undefined;
 
-    if (!accountId || !apiToken) {
+    if (!accessKeyId || !secretAccessKey || !bucket) {
       return NextResponse.json(
         {
-          error:
-            "Falta configurar CLOUDFLARE_ACCOUNT_ID y CLOUDFLARE_IMAGES_API_TOKEN (o CLOUDFLARE_API_TOKEN) en el runtime del Worker",
+          error: "Falta configurar AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY y AWS_S3_BUCKET en el runtime del Worker",
         },
         { status: 500 }
       );
     }
 
-    const uploadData = new FormData();
-    uploadData.append("file", file, file.name || "asset-photo.jpg");
-    uploadData.append("requireSignedURLs", "false");
+    const assetType = String(formData.get("assetType") || "asset").trim().toLowerCase() || "asset";
+    const assetCode = String(formData.get("assetCode") || crypto.randomUUID()).trim();
 
-    const cfResponse = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiToken}`,
-      },
-      body: uploadData,
+    const ext = (() => {
+      if (file.type === "image/jpeg") return "jpg";
+      if (file.type === "image/png") return "png";
+      if (file.type === "image/webp") return "webp";
+      const fromName = file.name?.split(".").pop();
+      return fromName ? fromName.toLowerCase() : "jpg";
+    })();
+
+    const safeCode = assetCode.replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 60);
+    const key = `assets/${assetType}/${Date.now()}-${safeCode}.${ext}`;
+
+    const objectUrl = endpointOverride
+      ? `${endpointOverride.replace(/\/$/, "")}/${bucket}/${key}`
+      : `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
+
+    const aws = new AwsClient({
+      accessKeyId,
+      secretAccessKey,
+      region,
+      service: "s3",
     });
 
-    const cfJson = (await cfResponse.json()) as any;
+    const putRes = await aws.fetch(objectUrl, {
+      method: "PUT",
+      headers: {
+        "Content-Type": file.type || "application/octet-stream",
+        "x-amz-acl": "public-read",
+      },
+      body: file.stream(),
+    });
 
-    if (!cfResponse.ok || !cfJson?.success || !cfJson?.result?.id) {
+    if (!putRes.ok) {
+      const body = await putRes.text();
       return NextResponse.json(
         {
-          error: cfJson?.errors?.[0]?.message || "No se pudo subir la imagen a Cloudflare Images",
+          error: `No se pudo subir la imagen a S3 (${putRes.status}): ${body.slice(0, 180)}`,
         },
         { status: 500 }
       );
     }
 
-    const imageId = cfJson.result.id as string;
-    const imageUrl = Array.isArray(cfJson.result.variants) && cfJson.result.variants.length > 0 ? cfJson.result.variants[0] : null;
-
-    if (!imageUrl) {
-      return NextResponse.json({ error: "Cloudflare no devolvió URL de la imagen" }, { status: 500 });
-    }
+    const imageId = key;
+    const imageUrl = publicBaseUrl
+      ? `${publicBaseUrl.replace(/\/$/, "")}/${key}`
+      : `https://${bucket}.s3.${region}.amazonaws.com/${key}`;
 
     return NextResponse.json({ success: true, id: imageId, url: imageUrl });
   } catch (error: any) {
