@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demostración - Google Auth Contador</title>
+    <!-- Fuente moderna e íconos -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Identity Services -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+    <!-- Elementos decorativos de fondo -->
+    <div class="background-shapes">
+        <div class="shape shape-1"></div>
+        <div class="shape shape-2"></div>
+        <div class="shape shape-3"></div>
+    </div>
+    
+    <div class="container">
+        <header>
+            <h1>Autenticación sin Registro</h1>
+            <p>Haz clic en el botón. Si no estás identificado, se te pedirá iniciar sesión con Google antes de realizar la acción.</p>
+        </header>
+
+        <main class="card glass">
+            
+            <!-- Información del Usuario Logeado -->
+            <div id="user-info" class="user-info hidden">
+                <img id="user-avatar" src="" alt="Avatar" class="avatar">
+                <p>Hola, <strong id="user-name">Usuario</strong>!</p>
+                <button id="logout-btn" class="btn-text">Cerrar sesión</button>
+            </div>
+
+            <!-- Contador -->
+            <div class="counter-display">
+                <span id="counter-value">0</span>
+                <span class="counter-label">Votos Registrados</span>
+            </div>
+
+            <!-- Botón de Acción Principal -->
+            <button id="action-btn" class="btn-primary">
+                <svg viewBox="0 0 24 24" class="icon"><path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+                <span id="btn-text-content">Votar (Requiere Login)</span>
+            </button>
+            
+            <!-- Advertencia de configuración -->
+            <div id="setup-warning" class="warning-box">
+                <p><strong>⚠️ Atención:</strong> Debes reemplazar <code>YOUR_GOOGLE_CLIENT_ID</code> en <code>app.js</code> por un ID de cliente válido de Google Cloud Console para ver el pop-up real de Google. Por ahora funciona en "Modo Demo".</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
