@@ -5,6 +5,8 @@ export const metadata = {
   description: "Autenticación sin Registro con Google Identity Services",
 };
 
+import { AuthProvider } from "./context/AuthContext";
+
 export default function RootLayout({
   children,
 }: {
@@ -15,7 +17,11 @@ export default function RootLayout({
       <head>
         <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
-      <body>{children}</body>
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
     </html>
   );
 }

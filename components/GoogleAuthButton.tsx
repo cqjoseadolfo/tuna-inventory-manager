@@ -1,129 +1,23 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
-// Mismo ID de demostración
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID";
-
-interface UserProfile {
-  name: string;
-  email: string;
-  picture: string;
-  token?: string;
-}
+import { useAuth } from "../app/context/AuthContext";
 
 export default function GoogleAuthButton() {
-  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
-  const [counter, setCounter] = useState(0);
-  const [tokenClient, setTokenClient] = useState<any>(null);
+  const { user, login } = useAuth();
 
-  useEffect(() => {
-    // Inicializar Google Auth
-    const initGoogleAuth = () => {
-      if (typeof window !== "undefined" && (window as any).google) {
-        if (GOOGLE_CLIENT_ID === "YOUR_GOOGLE_CLIENT_ID") {
-          console.warn("Por favor configura tu GOOGLE_CLIENT_ID");
-        } else {
-            const client = (window as any).google.accounts.oauth2.initTokenClient({
-            client_id: GOOGLE_CLIENT_ID,
-            scope: "https://www.googleapis.com/auth/userinfo.profile https://www.googleapis.com/auth/userinfo.email",
-            callback: (tokenResponse: any) => {
-              if (tokenResponse && tokenResponse.access_token) {
-                fetchUserProfile(tokenResponse.access_token);
-              }
-            },
-          });
-          setTokenClient(client);
-        }
-      } else {
-        setTimeout(initGoogleAuth, 500);
-      }
-    };
-    initGoogleAuth();
-  }, []);
-
-  const fetchUserProfile = async (accessToken: string) => {
-    try {
-      const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      const data = await response.json();
-      setCurrentUser({
-        name: data.name || data.given_name || "Usuario",
-        email: data.email,
-        picture: data.picture,
-        token: accessToken,
-      });
-      performAction();
-    } catch (error) {
-      console.error("Error obteniendo el perfil:", error);
-      alert("Hubo un error al obtener los datos de la cuenta.");
-    }
-  };
-
-  const performAction = () => {
-    setCounter((prev) => prev + 1);
-  };
-
-  const handleActionClick = () => {
-    if (GOOGLE_CLIENT_ID === "YOUR_GOOGLE_CLIENT_ID") {
-      if (!currentUser) {
-        alert("⚠️ MODO DEMO:\n\nComo no has configurado tu GOOGLE_CLIENT_ID aún, simularemos que iniciaste sesión con Google para ver cómo funciona el flujo.");
-        setCurrentUser({
-          name: "Tuno Demostrador",
-          email: "demo@tuno.com",
-          picture: "https://ui-avatars.com/api/?name=Tuno+Demo&background=3b82f6&color=fff&size=128",
-        });
-        performAction();
-      } else {
-        performAction();
-      }
-      return;
-    }
-
-    if (!currentUser) {
-      if (tokenClient) {
-          tokenClient.requestAccessToken();
-      }
-    } else {
-      performAction();
-    }
-  };
-
-  const handleLogout = () => {
-    if (currentUser && currentUser.token) {
-      if (typeof window !== "undefined" && (window as any).google) {
-        (window as any).google.accounts.oauth2.revoke(currentUser.token, () => {
-          console.log("Token revocado");
-        });
-      }
-    }
-    setCurrentUser(null);
-  };
+  // If already authenticated, the button shouldn't show (Dashboard handles the view)
+  if (user) return null;
 
   return (
-    <>
-      <div id="user-info" className={`user-info ${!currentUser ? "hidden" : ""}`}>
-         {currentUser && (
-           <>
-             <img id="user-avatar" src={currentUser.picture} alt="Avatar" className="avatar" />
-             <p>Hola, <strong id="user-name">{currentUser.name}</strong>!</p>
-             <button id="logout-btn" className="btn-text" onClick={handleLogout}>Cerrar sesión</button>
-           </>
-         )}
-      </div>
-
-      <div className="counter-display">
-        <span id="counter-value">{counter}</span>
-        <span className="counter-label">Votos Registrados</span>
-      </div>
-
-      <button id="action-btn" className="btn-primary" onClick={handleActionClick}>
-        <svg viewBox="0 0 24 24" className="icon">
-          <path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-        </svg>
-        <span id="btn-text-content">{currentUser ? "Votar / Incrementar" : "Votar (Requiere Login)"}</span>
-      </button>
-    </>
+    <button id="action-btn" className="btn-primary" onClick={login}>
+      <svg viewBox="0 0 24 24" className="icon" width="24" height="24">
+        {/* Simple Google G SVG Path */}
+        <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+        <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+        <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" />
+        <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+      </svg>
+      <span id="btn-text-content">Iniciar sesión con Google</span>
+    </button>
   );
 }
