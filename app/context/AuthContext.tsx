@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-const GOOGLE_CLIENT_ID = "328552101289-qp8k6lbe2n97svn17fga8bd8t2c19nq2.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
 
 export interface UserProfile {
   name: string;
