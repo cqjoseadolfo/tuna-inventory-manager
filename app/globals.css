@@ -22,6 +22,7 @@ body {
         radial-gradient(circle at 85% 80%, #7c3aed 0%, transparent 30%), var(--bg-color);
     color: var(--text-primary);
     min-height: 100vh;
+    overflow-x: hidden;
 }
 
 .app-shell,
@@ -130,6 +131,7 @@ body {
     max-width: 62rem;
     display: grid;
     gap: 1rem;
+    min-width: 0;
 }
 
 .dashboard-header {
@@ -189,6 +191,7 @@ body {
 .dashboard-content {
     display: grid;
     gap: 1rem;
+    min-width: 0;
 }
 
 .actions-section {
@@ -200,6 +203,8 @@ body {
     margin-top: 1.5rem;
     padding-top: 1.25rem;
     border-top: 1px solid rgba(148, 163, 184, 0.2);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
 }
 
 .dashboard-content h2 {
@@ -215,7 +220,8 @@ body {
 .dashboard-grid {
     display: flex;
     gap: 0.6rem;
-    overflow-x: auto;
+    width: max-content;
+    min-width: 100%;
     padding-bottom: 0.2rem;
 }
 
@@ -253,8 +259,8 @@ body {
     flex: 0 0 auto;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
+    justify-content: center;
+    align-items: center;
     border: 1px solid rgba(148, 163, 184, 0.2);
     background: rgba(15, 23, 42, 0.55);
     position: relative;
@@ -302,9 +308,10 @@ body {
     color: var(--text-secondary);
     font-weight: 600;
     font-size: 0.76rem;
-    margin-bottom: 0.35rem;
+    margin-top: 0.2rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    text-align: center;
 }
 
 .stat-value {
@@ -501,6 +508,7 @@ body {
         grid-template-columns: repeat(3, 1fr);
         gap: 1rem;
         overflow: visible;
+        width: 100%;
     }
 
     .stat-card {
