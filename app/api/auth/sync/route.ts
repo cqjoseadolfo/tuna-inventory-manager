@@ -12,13 +12,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Access the D1 Database binding provided by Vinext/Cloudflare
-    // process.env.DB is populated by wrangler.jsonc or local Vite Dev Server
-    const db = process.env.DB as any;
+    // Access the D1 Database binding
+    // In Edge runtime, it's often on globalThis[binding] or polyfilled into process.env[binding]
+    const db = (process.env.DB || (globalThis as any).DB) as any;
 
+    console.log('Syncing user:', email);
     if (!db) {
-      console.warn("DB binding not found. Are you running with vinext dev?");
-      return NextResponse.json({ error: 'Database binding missing' }, { status: 500 });
+      console.error("DB binding 'DB' not found in process.env");
+      // Check if it's under a different name or uppercase
+      const envKeys = Object.keys(process.env);
+      console.log("Available env keys:", envKeys.filter(k => !k.includes('TOKEN') && !k.includes('SECRET')));
+      return NextResponse.json({ error: 'Database binding (DB) not found in production environment' }, { status: 500 });
     }
 
     // 1. Check if user exists

@@ -100,9 +100,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       setUser(newUserProfile);
       localStorage.setItem("tuna-auth-user", JSON.stringify(newUserProfile));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error obteniendo el perfil:", error);
-      alert("Hubo un error al iniciar sesión en el sistema.");
+      alert(`Hubo un error al iniciar sesión en el sistema: ${error.message || "Error desconocido"}`);
     }
   };
 
