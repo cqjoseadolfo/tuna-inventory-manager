@@ -48,6 +48,8 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
   const [message, setMessage] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [photoName, setPhotoName] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
 
   const normalizedTags = useMemo(() => {
     const baseTag =
@@ -80,14 +82,9 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
 
     setError("");
     setPhotoName(file.name);
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : "";
-      update("photoUrl", result);
-    };
-    reader.onerror = () => setError("No se pudo leer la foto seleccionada.");
-    reader.readAsDataURL(file);
+    setPhotoFile(file);
+    setPreviewUrl(URL.createObjectURL(file));
+    update("photoUrl", "");
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -96,7 +93,7 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     setMessage("");
 
     if (!form.assetCode.trim()) return setError("Ingresa el código o número de rotulación.");
-    if (!form.photoUrl.trim()) return setError("Toma o selecciona una foto principal del activo.");
+    if (!photoFile) return setError("Toma o selecciona una foto principal del activo.");
 
     if (form.assetType === "instrumento" && (!form.instrumentType.trim() || !form.brand.trim())) {
       return setError("Para instrumento se requiere tipo de instrumento y marca.");
@@ -107,6 +104,22 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
 
     try {
       setIsSubmitting(true);
+
+      const photoData = new FormData();
+      photoData.append("file", photoFile);
+      photoData.append("assetType", form.assetType);
+      photoData.append("assetCode", form.assetCode.trim());
+
+      const uploadResponse = await fetch("/api/assets/upload-photo", {
+        method: "POST",
+        body: photoData,
+      });
+
+      const uploadResult = await uploadResponse.json();
+      if (!uploadResponse.ok || !uploadResult?.url) {
+        throw new Error(uploadResult?.error || "No se pudo subir la foto.");
+      }
+
       const response = await fetch("/api/assets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,7 +127,8 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
           assetType: form.assetType,
           code: form.assetCode.trim(),
           name: form.assetCode.trim(),
-          photoUrl: form.photoUrl.trim(),
+          photoUrl: uploadResult.url,
+          photoId: uploadResult.id,
           currentValue: 0,
           status: "disponible",
           notes: null,
@@ -154,6 +168,8 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
 
       setMessage("Activo registrado correctamente.");
       setPhotoName("");
+      setPhotoFile(null);
+      setPreviewUrl("");
       setForm((prev) => ({ ...initialState, assetType: prev.assetType }));
     } catch (err: any) {
       setError(err.message || "Error inesperado.");
@@ -193,9 +209,9 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
                 capture="environment"
                 onChange={handlePhotoChange}
               />
-              {form.photoUrl ? (
+              {previewUrl ? (
                 <div className="photo-preview-wrap">
-                  <img src={form.photoUrl} alt="Vista previa del activo" className="photo-preview" />
+                  <img src={previewUrl} alt="Vista previa del activo" className="photo-preview" />
                   <span className="helper-text">{photoName || "Foto cargada"}</span>
                 </div>
               ) : (
