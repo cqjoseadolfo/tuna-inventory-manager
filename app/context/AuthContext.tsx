@@ -8,7 +8,10 @@ export interface UserProfile {
   name: string;
   email: string;
   picture: string;
+  nickname?: string;
+  isNewUser?: boolean;
   token?: string;
+  sessionId?: string;
 }
 
 interface AuthContextType {
@@ -16,6 +19,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: () => void;
   logout: () => void;
+  completeOnboarding: (nickname: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -60,15 +64,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUserProfile = async (accessToken: string) => {
     try {
-      const response = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      // 1. Get data from Google
+      const googleResponse = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
-      const data = await response.json();
+      const googleData = await googleResponse.json();
       
+      // 2. Sync with our D1 Database
+      const syncResponse = await fetch("/api/auth/sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: googleData.name || googleData.given_name || "Usuario",
+          email: googleData.email,
+          picture: googleData.picture
+        })
+      });
+      
+      const syncData = await syncResponse.json();
+
+      if (!syncData.success) {
+        throw new Error(syncData.error || "Failed to sync user with database");
+      }
+
+      // 3. Set the combined profile
       const newUserProfile: UserProfile = {
-        name: data.name || data.given_name || "Usuario",
-        email: data.email,
-        picture: data.picture,
+        name: syncData.user.name,
+        email: syncData.user.email,
+        picture: syncData.user.picture,
+        nickname: syncData.user.nickname,
+        isNewUser: syncData.isNewUser || !syncData.user.nickname,
+        sessionId: syncData.sessionId,
         token: accessToken,
       };
 
@@ -76,8 +102,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem("tuna-auth-user", JSON.stringify(newUserProfile));
     } catch (error) {
       console.error("Error obteniendo el perfil:", error);
-      alert("Hubo un error al iniciar sesión.");
+      alert("Hubo un error al iniciar sesión en el sistema.");
     }
+  };
+
+  const completeOnboarding = (nickname: string) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, nickname, isNewUser: false };
+    setUser(updatedUser);
+    localStorage.setItem("tuna-auth-user", JSON.stringify(updatedUser));
   };
 
   const login = () => {

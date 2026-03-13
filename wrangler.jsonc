@@ -12,5 +12,12 @@
   },
   "images": {
     "binding": "IMAGES"
-  }
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "tuna-inventory-db",
+      "database_id": "b1ee47a3-35cc-4747-a0ef-563e94702924"
+    }
+  ]
 }
