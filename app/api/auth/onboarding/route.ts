@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getDbBinding } from '@/app/lib/db';
 
 export const runtime = 'edge';
 
@@ -11,11 +12,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email and nickname are required' }, { status: 400 });
     }
 
-    const db = process.env.DB as any;
-
-    if (!db) {
-      return NextResponse.json({ error: 'Database binding missing' }, { status: 500 });
-    }
+    const db = getDbBinding();
 
     // Update the user's nickname (Chapa)
     const result = await db.prepare('UPDATE users SET nickname = ? WHERE email = ?')

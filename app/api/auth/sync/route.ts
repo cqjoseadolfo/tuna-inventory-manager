@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { getDbBinding } from '@/app/lib/db';
 
 export const runtime = 'edge';
 
@@ -12,18 +13,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
-    // Access the D1 Database binding
-    // In Edge runtime, it's often on globalThis[binding] or polyfilled into process.env[binding]
-    const db = (process.env.DB || (globalThis as any).DB) as any;
+    const db = getDbBinding();
 
     console.log('Syncing user:', email);
-    if (!db) {
-      console.error("DB binding 'DB' not found in process.env");
-      // Check if it's under a different name or uppercase
-      const envKeys = Object.keys(process.env);
-      console.log("Available env keys:", envKeys.filter(k => !k.includes('TOKEN') && !k.includes('SECRET')));
-      return NextResponse.json({ error: 'Database binding (DB) not found in production environment' }, { status: 500 });
-    }
 
     // 1. Check if user exists
     let user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
