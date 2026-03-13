@@ -15,6 +15,30 @@
 - Pipeline: checkout -> setup node 22 -> npm install -> npm run deploy.
 - Deploy target: Cloudflare Workers + D1.
 
+## 2.1) Arquitectura técnica (resumen)
+- **Capa UI (Next.js App Router):**
+   - `app/layout.tsx`: layout raíz y carga de Google Identity Services.
+   - `app/page.tsx`: entry principal, muestra login o dashboard según sesión.
+   - `components/*`: piezas de UI (`GoogleAuthButton`, `Dashboard`, `OnboardingModal`).
+- **Capa de estado (cliente):**
+   - `app/context/AuthContext.tsx`: maneja sesión, token Google y persistencia local.
+- **Capa API (edge routes):**
+   - `app/api/auth/sync/route.ts`: upsert de usuario + log de acceso.
+   - `app/api/auth/onboarding/route.ts`: guarda `nickname` (chapa).
+- **Capa de ejecución edge (Cloudflare):**
+   - `worker/index.ts`: entrada del Worker, delega a vinext y expone bindings.
+   - `wrangler.jsonc`: define bindings `DB`, `ASSETS`, `IMAGES`.
+- **Capa de datos:**
+   - D1 (SQLite serverless) con tablas `users` y `login_logs` (`schema.sql`).
+
+## 2.2) Docker y portabilidad
+- Desarrollo local está containerizado con `Dockerfile` + `docker-compose.yml`.
+- La imagen base usa Node 22 y prepara dependencias para ejecutar `vinext`.
+- El código se monta por volumen en `/app` para hot-reload.
+- La app levanta en puerto `3001` dentro/fuera del contenedor.
+- El entorno queda **portable y reproducible**: la misma imagen puede ejecutarse en cualquier host con Docker (Windows, Linux, macOS, CI runners).
+- Nota práctica: en producción final se despliega a Cloudflare Workers (no como contenedor), pero Docker unifica y estabiliza el entorno de desarrollo/build local.
+
 ## 3) Problemas encontrados y resolución
 
 ### A) Error en CI: faltaba `CLOUDFLARE_API_TOKEN`
