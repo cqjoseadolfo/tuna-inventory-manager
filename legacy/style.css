@@ -1,0 +1,249 @@
+:root {
+    --bg-color: #0f172a;
+    --text-primary: #f8fafc;
+    --text-secondary: #94a3b8;
+    --accent: #3b82f6;
+    --accent-hover: #2563eb;
+    --glass-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    position: relative;
+}
+
+/* Formas y gradientes de fondo Premium */
+.background-shapes {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.shape {
+    position: absolute;
+    filter: blur(80px);
+    border-radius: 50%;
+    opacity: 0.6;
+    animation: float 10s infinite ease-in-out alternate;
+}
+
+.shape-1 {
+    top: -10%;
+    left: -10%;
+    width: 40vw;
+    height: 40vw;
+    background: #4f46e5;
+}
+
+.shape-2 {
+    bottom: -10%;
+    right: -10%;
+    width: 35vw;
+    height: 35vw;
+    background: #ec4899;
+    animation-delay: -5s;
+}
+
+.shape-3 {
+    top: 40%;
+    left: 40%;
+    width: 20vw;
+    height: 20vw;
+    background: #0ea5e9;
+    animation-duration: 15s;
+}
+
+@keyframes float {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, 50px) scale(1.1); }
+}
+
+.container {
+    width: 100%;
+    max-width: 500px;
+    padding: 2rem;
+    z-index: 1;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+header h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+    background: linear-gradient(to right, #c084fc, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+header p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Tarjeta Glassmorphism */
+.card {
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 1.5rem;
+    padding: 2.5rem;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* Información del Usuario */
+.user-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--glass-border);
+    animation: fadeIn 0.5s ease-out;
+}
+
+.user-info.hidden {
+    display: none;
+}
+
+.avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    margin-bottom: 0.75rem;
+    border: 2px solid var(--accent);
+    padding: 2px;
+}
+
+.btn-text {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    transition: color 0.2s;
+}
+
+.btn-text:hover {
+    color: #ef4444;
+}
+
+/* Área del Contador */
+.counter-display {
+    margin-bottom: 2rem;
+}
+
+#counter-value {
+    display: block;
+    font-size: 5rem;
+    font-weight: 800;
+    line-height: 1;
+    margin-bottom: 0.5rem;
+    text-shadow: 0 0 20px rgba(255,255,255,0.2);
+    transition: transform 0.2s, color 0.2s;
+}
+
+.counter-label {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+/* Botón Principal */
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent), var(--accent-hover));
+    color: white;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 9999px;
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    font-weight: 600;
+    cursor: pointer;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.75rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.4);
+}
+
+.btn-primary:hover {
+    transform: scale(1.05);
+    box-shadow: 0 15px 25px -5px rgba(59, 130, 246, 0.6);
+}
+
+.btn-primary:active {
+    transform: scale(0.95);
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* Área de Advertencia */
+.warning-box {
+    margin-top: 1.5rem;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 0.5rem;
+    padding: 1rem;
+    font-size: 0.875rem;
+    color: #fef08a;
+    text-align: left;
+    line-height: 1.4;
+}
+
+.warning-box code {
+    background: rgba(0,0,0,0.3);
+    padding: 0.1rem 0.3rem;
+    border-radius: 0.2rem;
+    font-family: monospace;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.pulse {
+    animation: pulse 0.5s ease-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.2); color: #ec4899; }
+    100% { transform: scale(1); }
+}

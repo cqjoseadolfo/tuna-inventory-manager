@@ -1,0 +1,27 @@
+{
+  "name": "tuna-inventory-manager",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "dev:vinext": "vinext dev",
+    "build:vinext": "vinext build",
+    "deploy": "vinext deploy"
+  },
+  "dependencies": {
+    "next": "14.2.3",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "@types/react": "^18.3.2",
+    "@types/react-dom": "^18.3.0",
+    "@vitejs/plugin-rsc": "latest",
+    "typescript": "^5.4.5"
+  }
+}
