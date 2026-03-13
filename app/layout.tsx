@@ -17,10 +17,15 @@ export default function RootLayout({
       <head>
         <script src="https://accounts.google.com/gsi/client" async defer></script>
       </head>
-      <body>
+      <body className="flex flex-col min-h-screen">
         <AuthProvider>
-          {children}
+          <div className="flex-grow">
+            {children}
+          </div>
         </AuthProvider>
+        <footer className="w-full text-center p-3 text-xs text-gray-500 bg-gray-900 border-t border-gray-800">
+          version: {process.env.NEXT_PUBLIC_GIT_COMMIT || 'local-dev'}
+        </footer>
       </body>
     </html>
   );
