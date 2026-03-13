@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
 import AssetEntryForm from "./AssetEntryForm";
+import AssetSearch from "./AssetSearch";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
@@ -76,12 +77,7 @@ export default function Dashboard() {
 
         {activeView === "register" && <AssetEntryForm createdByEmail={user.email} />}
 
-        {activeView === "consult" && (
-          <section className="asset-panel glass">
-            <h3>Consultar activo</h3>
-            <p className="placeholder-text">Próximo paso: vista de búsqueda y detalle conectada a D1.</p>
-          </section>
-        )}
+        {activeView === "consult" && <AssetSearch />}
 
         <section className="data-section">
           <div className="dashboard-grid">
