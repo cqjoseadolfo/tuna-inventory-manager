@@ -27,6 +27,8 @@ export default function Dashboard() {
   if (!user) return null;
 
   const displayName = user.name?.trim() || "músico";
+  // Reemplaza esta URL cuando subas tu imagen final a S3
+  const plan2026ImageUrl = "https://tuna-inventory-manager-tfciff-arequipa-peru-tconan.s3.us-east-2.amazonaws.com/ui/home/newsletter/plan-2026-kid-v1.png";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -230,6 +232,26 @@ export default function Dashboard() {
               </div>
             </Link>
           </div>
+        </section>
+
+        <section>
+          <article className="flex items-center justify-between gap-4 rounded-[2rem] bg-slate-900 px-5 py-5 text-white shadow-[0_18px_30px_rgba(15,23,42,0.18)]">
+            <div className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-300">Newsletter</p>
+              <h3 className="mt-1 text-2xl font-black">Plan 2026</h3>
+              <p className="mt-1 text-sm text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
+            </div>
+
+            {plan2026ImageUrl ? (
+              <img
+                src={plan2026ImageUrl}
+                alt="Plan 2026"
+                className="h-24 w-24 flex-shrink-0 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="grid h-24 w-24 flex-shrink-0 place-items-center rounded-2xl bg-white/10 text-4xl">🧒</div>
+            )}
+          </article>
         </section>
 
         <section className="grid gap-3">
