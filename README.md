@@ -136,6 +136,12 @@ Para crear las tablas en D1, ejecuta:
 npx wrangler d1 execute tuna-inventory-db --file=./schema.sql
 ```
 
+Migración (una sola vez) para mover el año de fabricación a la tabla principal de activos y eliminar columnas legacy:
+
+```bash
+npx wrangler d1 execute tuna-inventory-db --file=./docs/sql/2026-03-14-alter-assets-add-fabrication-year.sql
+```
+
 ---
 
 ## 🐳 Desarrollo con Docker

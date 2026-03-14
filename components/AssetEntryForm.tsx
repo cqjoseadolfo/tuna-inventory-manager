@@ -202,6 +202,7 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
           assetType: form.assetType,
           photoUrl: uploadResult.url,
           photoId: uploadResult.id,
+          fabricationYear: form.fabricationYear ? Number(form.fabricationYear) : null,
           currentValue: 0,
           status: "bajo_responsabilidad",
           notes: form.notes.trim() || null,
@@ -212,7 +213,6 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
               ? {
                   instrumentType: form.instrumentType.trim() || null,
                   brand: form.brand.trim() || null,
-                  fabricationYear: form.fabricationYear ? Number(form.fabricationYear) : null,
                 }
               : null,
           recognition:
@@ -341,6 +341,20 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                   </select>
                 </div>
 
+                <div>
+                  <label className="input-label">Año de fabricación</label>
+                  <input
+                    className={fieldClass(form.fabricationYear)}
+                    type="number"
+                    min="1800"
+                    max="2100"
+                    value={form.fabricationYear}
+                    onChange={(e) => update("fabricationYear", e.target.value)}
+                    placeholder="Ej: 2018"
+                  />
+                  {!form.fabricationYear.trim() && <p className="missing-hint">Completa el año de fabricación (o estimado).</p>}
+                </div>
+
                 <div className="field-full">
                   <label className="input-label">Notas del activo</label>
                   <textarea
@@ -384,10 +398,6 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                       <label className="input-label">Marca</label>
                       <input className={fieldClass(form.brand)} value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
                       {!form.brand.trim() && <p className="missing-hint">Completa la marca si la conoces.</p>}
-                    </div>
-                    <div>
-                      <label className="input-label">Año de fabricación</label>
-                      <input className={fieldClass(form.fabricationYear)} type="number" min="1800" max="2100" value={form.fabricationYear} onChange={(e) => update("fabricationYear", e.target.value)} />
                     </div>
                   </div>
                 </div>

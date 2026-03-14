@@ -64,6 +64,7 @@ export async function GET(request: Request) {
         a.asset_type,
         a.name,
         a.photo_url,
+        a.fabrication_year AS asset_fabrication_year,
         a.current_value,
         a.status,
         a.notes,
@@ -74,7 +75,6 @@ export async function GET(request: Request) {
         a.created_at,
         i.instrument_type,
         i.brand,
-        i.fabrication_year,
         r.issuer,
         r.issue_date,
         r.document_type,
@@ -96,6 +96,7 @@ export async function GET(request: Request) {
         a.asset_type,
         a.name,
         a.photo_url,
+        a.fabrication_year,
         a.current_value,
         a.status,
         a.notes,
@@ -106,7 +107,6 @@ export async function GET(request: Request) {
         a.created_at,
         i.instrument_type,
         i.brand,
-        i.fabrication_year,
         r.issuer,
         r.issue_date,
         r.document_type,
@@ -125,6 +125,7 @@ export async function GET(request: Request) {
       assetType: row.asset_type,
       name: row.name,
       photoUrl: row.photo_url,
+      fabricationYear: row.asset_fabrication_year,
       currentValue: row.current_value,
       status: row.status,
       notes: row.notes,
@@ -140,7 +141,7 @@ export async function GET(request: Request) {
           ? {
               instrumentType: row.instrument_type,
               brand: row.brand,
-              fabricationYear: row.fabrication_year,
+              fabricationYear: row.asset_fabrication_year,
             }
           : null,
       recognition:
@@ -179,6 +180,7 @@ export async function POST(request: Request) {
       name,
       photoUrl,
       currentValue,
+      fabricationYear,
       status,
       notes,
       tags,
@@ -192,6 +194,7 @@ export async function POST(request: Request) {
       name?: string;
       photoUrl: string;
       currentValue: number;
+      fabricationYear?: number | null;
       status?: string;
       notes?: string | null;
       tags?: string[];
@@ -204,8 +207,16 @@ export async function POST(request: Request) {
     const generatedCode = generateAssetCode(assetType || "otro");
     const assetIdentifier = String(code || name || generatedCode).trim();
     const parsedCurrentValue = Number(currentValue ?? 0);
+    const rawFabricationYear = fabricationYear ?? instrument?.fabricationYear ?? null;
+    const parsedFabricationYear = rawFabricationYear === null || rawFabricationYear === undefined ? null : Number(rawFabricationYear);
 
-    if (!assetType || !assetIdentifier || !photoUrl || Number.isNaN(parsedCurrentValue)) {
+    if (
+      !assetType ||
+      !assetIdentifier ||
+      !photoUrl ||
+      Number.isNaN(parsedCurrentValue) ||
+      (parsedFabricationYear !== null && Number.isNaN(parsedFabricationYear))
+    ) {
       return NextResponse.json({ error: "assetType, código/nombre y photoUrl son requeridos" }, { status: 400 });
     }
 
@@ -227,14 +238,15 @@ export async function POST(request: Request) {
 
     await db
       .prepare(
-        `INSERT INTO assets (id, asset_type, name, photo_url, current_value, status, notes, created_by_user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO assets (id, asset_type, name, photo_url, fabrication_year, current_value, status, notes, created_by_user_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         assetId,
         assetType,
         assetIdentifier,
         photoUrl,
+        parsedFabricationYear,
         parsedCurrentValue,
         status || "bajo_responsabilidad",
         notes ?? null,
@@ -245,14 +257,13 @@ export async function POST(request: Request) {
     if (assetType === "instrumento") {
       await db
         .prepare(
-          `INSERT INTO asset_instruments (asset_id, instrument_type, brand, fabrication_year)
-           VALUES (?, ?, ?, ?)`
+          `INSERT INTO asset_instruments (asset_id, instrument_type, brand)
+           VALUES (?, ?, ?)`
         )
         .bind(
           assetId,
           instrument?.instrumentType || "No identificado",
-          instrument?.brand || "No identificado",
-          instrument?.fabricationYear ?? null
+          instrument?.brand || "No identificado"
         )
         .run();
     }
