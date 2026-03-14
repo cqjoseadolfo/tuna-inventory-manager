@@ -12,7 +12,7 @@ WHERE fabrication_year IS NULL
 -- 2) Backfill desde la tabla de instrumentos para no perder datos históricos.
 UPDATE assets
 SET fabrication_year = (
-  SELECT i.fabrication_year
+  SELECT CAST(i.fabrication AS INTEGER)
   FROM asset_instruments i
   WHERE i.asset_id = assets.id
 )
@@ -20,4 +20,4 @@ WHERE fabrication_year IS NULL;
 
 -- 3) Limpiar columnas legacy
 ALTER TABLE assets DROP COLUMN fabrication;
-ALTER TABLE asset_instruments DROP COLUMN fabrication_year;
+ALTER TABLE asset_instruments DROP COLUMN fabrication;

@@ -199,7 +199,7 @@ export async function POST(request: Request) {
       notes?: string | null;
       tags?: string[];
       createdByEmail?: string;
-      instrument?: { instrumentType?: string; brand?: string; fabricationYear?: number | null } | null;
+      instrument?: { instrumentType?: string; brand?: string } | null;
       recognition?: { issuer?: string; issueDate?: string | null; documentType?: string | null; referenceCode?: string | null } | null;
       uniform?: { size?: string | null; hasCinta?: boolean; hasJubon?: boolean; hasGreguesco?: boolean } | null;
     };
@@ -207,7 +207,7 @@ export async function POST(request: Request) {
     const generatedCode = generateAssetCode(assetType || "otro");
     const assetIdentifier = String(code || name || generatedCode).trim();
     const parsedCurrentValue = Number(currentValue ?? 0);
-    const rawFabricationYear = fabricationYear ?? instrument?.fabricationYear ?? null;
+    const rawFabricationYear = fabricationYear ?? null;
     const parsedFabricationYear = rawFabricationYear === null || rawFabricationYear === undefined ? null : Number(rawFabricationYear);
 
     if (
