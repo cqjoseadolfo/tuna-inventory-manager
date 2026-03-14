@@ -774,6 +774,13 @@ body {
     border-radius: 0.5rem;
     border: 1px solid rgba(148, 163, 184, 0.2);
     display: block;
+    cursor: zoom-in;
+    transition: opacity 0.15s ease, transform 0.15s ease;
+}
+
+.grid-thumb:hover {
+    opacity: 0.88;
+    transform: scale(1.05);
 }
 
 .grid-thumb-empty {
@@ -814,7 +821,107 @@ body {
     white-space: nowrap;
     color: #cbd5e1;
     font-size: 0.88rem;
-    min-width: 100px;
+    min-width: 120px;
+}
+
+.holder-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+}
+
+.holder-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1px solid rgba(148, 163, 184, 0.3);
+    flex-shrink: 0;
+}
+
+.holder-avatar-placeholder {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(59, 130, 246, 0.25);
+    border: 1px solid rgba(96, 165, 250, 0.35);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #bfdbfe;
+    flex-shrink: 0;
+}
+
+.col-tags {
+    min-width: 220px;
+    max-width: 320px;
+}
+
+.row-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+    max-width: 300px;
+}
+
+/* Photo lightbox */
+.photo-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(2, 6, 23, 0.88);
+    backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: zoom-out;
+    animation: fadeIn 0.18s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+.lightbox-img {
+    max-width: min(90vw, 900px);
+    max-height: 85vh;
+    border-radius: 0.85rem;
+    box-shadow: 0 30px 60px rgba(0, 0, 0, 0.6);
+    object-fit: contain;
+    cursor: default;
+    animation: zoomIn 0.18s ease;
+}
+
+@keyframes zoomIn {
+    from { transform: scale(0.92); opacity: 0; }
+    to   { transform: scale(1);    opacity: 1; }
+}
+
+.lightbox-close {
+    position: absolute;
+    top: 1.25rem;
+    right: 1.5rem;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(148, 163, 184, 0.25);
+    color: #e2e8f0;
+    border-radius: 50%;
+    width: 2.2rem;
+    height: 2.2rem;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.15s ease;
+    z-index: 1;
+}
+
+.lightbox-close:hover {
+    background: rgba(239, 68, 68, 0.35);
 }
 
 .status-badge {

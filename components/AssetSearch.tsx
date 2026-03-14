@@ -13,6 +13,7 @@ type SearchResult = {
   holderNickname?: string | null;
   holderEmail?: string | null;
   holderName?: string | null;
+  holderPicture?: string | null;
   notes?: string | null;
   tags: string[];
   createdAt?: string;
@@ -39,6 +40,7 @@ export default function AssetSearch() {
   const [allItems, setAllItems] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   // Column filters
   const [filterName, setFilterName] = useState("");
@@ -238,13 +240,30 @@ export default function AssetSearch() {
                   "—";
                 return (
                   <tr key={item.id} className="assets-table-row">
+                    {/* Asset photo — click to enlarge */}
                     <td className="col-photo">
                       {item.photoUrl ? (
-                        <img src={item.photoUrl} alt={item.name} className="grid-thumb" />
-                      ) : (
-                        <div className="grid-thumb-empty">📦</div>
-                      )}
+                        <img
+                          src={item.photoUrl}
+                          alt={item.name}
+                          className="grid-thumb"
+                          onClick={() => setLightboxUrl(item.photoUrl)}
+                          onError={(e) => {
+                            (e.currentTarget as HTMLImageElement).style.display = "none";
+                            const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                            if (next) next.style.display = "flex";
+                          }}
+                        />
+                      ) : null}
+                      <div
+                        className="grid-thumb-empty"
+                        style={{ display: item.photoUrl ? "none" : "flex" }}
+                      >
+                        📦
+                      </div>
                     </td>
+
+                    {/* Name + sub-description */}
                     <td className="col-name">
                       <span className="asset-name">{item.name}</span>
                       {item.notes && <span className="asset-notes">{item.notes}</span>}
@@ -260,19 +279,43 @@ export default function AssetSearch() {
                         </span>
                       )}
                     </td>
+
+                    {/* Type badge */}
                     <td>
                       <span className="result-badge">
                         {TYPE_LABELS[item.assetType] || item.assetType}
                       </span>
                     </td>
+
+                    {/* Status badge */}
                     <td>
                       <span className={`status-badge status-${item.status}`}>
                         {STATUS_LABELS[item.status] || item.status}
                       </span>
                     </td>
-                    <td className="col-holder">{holder}</td>
-                    <td>
-                      <div className="result-tags">
+
+                    {/* Holder with avatar */}
+                    <td className="col-holder">
+                      <div className="holder-cell">
+                        {item.holderPicture ? (
+                          <img
+                            src={item.holderPicture}
+                            alt={holder}
+                            className="holder-avatar"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="holder-avatar-placeholder">
+                            {holder.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span>{holder}</span>
+                      </div>
+                    </td>
+
+                    {/* Tags — clickable pills */}
+                    <td className="col-tags">
+                      <div className="row-tags">
                         {item.tags?.map((t) => (
                           <button
                             key={t}
@@ -291,6 +334,24 @@ export default function AssetSearch() {
           </tbody>
         </table>
       </div>
+
+      {/* Lightbox */}
+      {lightboxUrl && (
+        <div
+          className="photo-lightbox"
+          onClick={() => setLightboxUrl(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          <button className="lightbox-close" onClick={() => setLightboxUrl(null)}>✕</button>
+          <img
+            src={lightboxUrl}
+            alt="Vista ampliada"
+            className="lightbox-img"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
     </section>
   );
 }
