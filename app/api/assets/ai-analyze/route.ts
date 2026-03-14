@@ -71,7 +71,7 @@ export async function POST(request: Request) {
 
     const aiProvider = (getEnv("AI_PROVIDER") || "").toLowerCase();
     const geminiApiKey = getEnv("GEMINI_API_KEY");
-    const geminiModel = getEnv("GEMINI_MODEL") || "gemini-1.5-flash";
+    const geminiModel = getEnv("GEMINI_MODEL") || "gemini-3.1-flash-lite-preview";
 
     const openAiKey = getEnv("OPENAI_API_KEY");
     const openAiBaseUrl = getEnv("OPENAI_BASE_URL") || "https://api.openai.com/v1";
