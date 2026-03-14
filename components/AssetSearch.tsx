@@ -9,6 +9,8 @@ type SearchResult = {
   photoUrl: string;
   currentValue: number;
   status: string;
+  holderDisplayName?: string | null;
+  holderNickname?: string | null;
   holderEmail?: string | null;
   holderName?: string | null;
   notes?: string | null;
@@ -112,8 +114,8 @@ export default function AssetSearch() {
                 </div>
 
                 <p className="placeholder-text">Estado: {item.status} · Valor: S/ {Number(item.currentValue || 0).toFixed(2)}</p>
-                {(item.holderName || item.holderEmail) && (
-                  <p className="placeholder-text">Bajo responsabilidad de: {item.holderName || item.holderEmail}</p>
+                {(item.holderDisplayName || item.holderNickname || item.holderName || item.holderEmail) && (
+                  <p className="placeholder-text">Bajo responsabilidad de: {item.holderDisplayName || item.holderNickname || item.holderName || item.holderEmail}</p>
                 )}
                 {item.notes && <p className="placeholder-text">Notas: {item.notes}</p>}
 

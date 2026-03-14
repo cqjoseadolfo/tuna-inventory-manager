@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 interface Props {
   createdByEmail: string;
+  createdByLabel: string;
 }
 
 interface FormState {
@@ -39,17 +40,26 @@ const initialState: FormState = {
   hasGreguesco: false,
 };
 
-export default function AssetEntryForm({ createdByEmail }: Props) {
+export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props) {
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [hasAiResult, setHasAiResult] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [aiMessage, setAiMessage] = useState("");
   const [aiTags, setAiTags] = useState<string[]>([]);
+  const [tagsInput, setTagsInput] = useState("");
   const [photoName, setPhotoName] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+
+  const parseEditableTags = (value: string) =>
+    value
+      .split(/[,\n]/)
+      .map((item) => String(item || "").trim().toLowerCase())
+      .filter(Boolean)
+      .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
 
   const normalizedTags = useMemo(() => {
     const baseTag =
@@ -66,14 +76,19 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
         ? `#${form.instrumentType.trim().toLowerCase().replace(/\s+/g, "-")}`
         : null;
 
-    return Array.from(new Set([baseTag, extraTag, ...aiTags].filter(Boolean) as string[]));
-  }, [form.assetType, form.instrumentType, aiTags]);
+    return Array.from(new Set([baseTag, extraTag, ...parseEditableTags(tagsInput), ...aiTags].filter(Boolean) as string[]));
+  }, [form.assetType, form.instrumentType, aiTags, tagsInput]);
 
-  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
+  const fieldClass = (value?: string | number | null) => {
+    const isMissing = hasAiResult && (!value || String(value).trim() === "");
+    return isMissing ? "input-text input-missing" : "input-text";
   };
 
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+    setForm((prev: FormState) => ({ ...prev, [key]: value }));
+  };
+
+  const handlePhotoChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -83,7 +98,12 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     }
 
     setError("");
+    setMessage("");
     setAiMessage("");
+    setHasAiResult(false);
+    setAiTags([]);
+    setTagsInput("");
+    setForm(initialState);
     setPhotoName(file.name);
     setPhotoFile(file);
     setPreviewUrl(URL.createObjectURL(file));
@@ -117,7 +137,7 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
       const suggestion = data?.suggestion || {};
       const suggestedType = suggestion.assetType as AssetType | undefined;
 
-      setForm((prev) => ({
+      setForm((prev: FormState) => ({
         ...prev,
         assetType: suggestedType && ["instrumento", "reconocimiento", "uniforme", "otro"].includes(suggestedType)
           ? suggestedType
@@ -136,7 +156,10 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
       const incomingTags = Array.isArray(suggestion.tags)
         ? suggestion.tags.map((t: string) => String(t || "").trim().toLowerCase()).filter(Boolean)
         : [];
-      setAiTags(Array.from(new Set(incomingTags.map((t) => (t.startsWith("#") ? t : `#${t}`)))));
+      const normalizedIncomingTags = Array.from(new Set(incomingTags.map((t: string) => (t.startsWith("#") ? t : `#${t}`))));
+      setAiTags(normalizedIncomingTags);
+      setTagsInput(normalizedIncomingTags.join(", "));
+      setHasAiResult(true);
       setAiMessage("IA completó los campos detectados en la foto.");
     } catch (err: any) {
       setError(err.message || "Error inesperado al usar IA.");
@@ -145,7 +168,7 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     }
   };
 
-  const submit = async (e: React.FormEvent) => {
+  const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
@@ -220,9 +243,11 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
       setPhotoName("");
       setPhotoFile(null);
       setPreviewUrl("");
+      setHasAiResult(false);
       setAiMessage("");
       setAiTags([]);
-      setForm((prev) => ({ ...initialState, assetType: prev.assetType }));
+      setTagsInput("");
+      setForm((prev: FormState) => ({ ...initialState, assetType: prev.assetType }));
     } catch (err: any) {
       setError(err.message || "Error inesperado.");
     } finally {
@@ -233,7 +258,7 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
   return (
     <section className="asset-panel glass">
       <h3>Registrar activo</h3>
-      <p className="placeholder-text">Primero registra la foto principal y luego completa los datos base del activo.</p>
+      <p className="placeholder-text">Primero registra la foto principal y deja que la IA proponga el resultado editable del activo.</p>
 
       <form className="asset-form" onSubmit={submit}>
         <div className="asset-block">
@@ -282,126 +307,152 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
           </div>
         </div>
 
-        <div className="asset-block">
-          <div className="asset-block-header">
-            <h4>Datos base</h4>
-            <p className="placeholder-text">Información mínima necesaria para identificar el activo en el inventario.</p>
-          </div>
+        {hasAiResult && (
+          <>
+            <div className="asset-block">
+              <div className="asset-block-header">
+                <h4>Resultado detectado</h4>
+                <p className="placeholder-text">Revisa y corrige los campos si la IA se equivoca. Los faltantes están resaltados para completarlos manualmente.</p>
+              </div>
 
-          <div className="asset-form-grid">
-            <div>
-              <label className="input-label">Tipo de activo</label>
-              <select className="input-text" value={form.assetType} onChange={(e) => update("assetType", e.target.value as AssetType)}>
-                <option value="instrumento">Instrumento</option>
-                <option value="reconocimiento">Reconocimiento</option>
-                <option value="uniforme">Uniforme</option>
-                <option value="otro">Otro</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="input-label">Estado</label>
-              <input className="input-text" value="Bajo responsabilidad" readOnly />
-            </div>
-
-            <div className="field-full">
-              <label className="input-label">Responsable actual</label>
-              <input className="input-text" value={createdByEmail} readOnly />
-            </div>
-
-            <div className="field-full">
-              <label className="input-label">Notas del activo</label>
-              <textarea
-                className="input-text"
-                value={form.notes}
-                onChange={(e) => update("notes", e.target.value)}
-                placeholder="La IA puede completar este campo según el estado visual del activo"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div className="asset-block additional-block">
-          <div className="asset-block-header">
-            <h4>Información adicional importante</h4>
-            <p className="placeholder-text">Campos específicos del tipo de activo seleccionado.</p>
-          </div>
-
-          {form.assetType === "instrumento" && (
-            <div className="subtype-box">
-              <h4>Datos de instrumento</h4>
               <div className="asset-form-grid">
                 <div>
-                  <label className="input-label">Instrumento</label>
-                  <input className="input-text" value={form.instrumentType} onChange={(e) => update("instrumentType", e.target.value)} placeholder="Guitarra" />
+                  <label className="input-label">Código del activo</label>
+                  <input className="input-text input-readonly" value="Se generará automáticamente" readOnly />
                 </div>
+
                 <div>
-                  <label className="input-label">Marca</label>
-                  <input className="input-text" value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
+                  <label className="input-label">Estado</label>
+                  <input className="input-text input-readonly" value="Bajo responsabilidad" readOnly />
                 </div>
+
                 <div>
-                  <label className="input-label">Año de fabricación</label>
-                  <input className="input-text" type="number" min="1800" max="2100" value={form.fabricationYear} onChange={(e) => update("fabricationYear", e.target.value)} />
+                  <label className="input-label">Responsable actual</label>
+                  <input className="input-text input-readonly" value={createdByLabel} readOnly />
+                </div>
+
+                <div>
+                  <label className="input-label">Tipo de activo</label>
+                  <select className="input-text" value={form.assetType} onChange={(e) => update("assetType", e.target.value as AssetType)}>
+                    <option value="instrumento">Instrumento</option>
+                    <option value="reconocimiento">Reconocimiento</option>
+                    <option value="uniforme">Uniforme</option>
+                    <option value="otro">Otro</option>
+                  </select>
+                </div>
+
+                <div className="field-full">
+                  <label className="input-label">Notas del activo</label>
+                  <textarea
+                    className={fieldClass(form.notes)}
+                    value={form.notes}
+                    onChange={(e) => update("notes", e.target.value)}
+                    placeholder="La IA puede completar este campo según el estado visual del activo"
+                  />
+                  {!form.notes.trim() && <p className="missing-hint">Completa manualmente la descripción visual del activo.</p>}
+                </div>
+
+                <div className="field-full">
+                  <label className="input-label">Tags detectados</label>
+                  <textarea
+                    className={fieldClass(tagsInput)}
+                    value={tagsInput}
+                    onChange={(e) => setTagsInput(e.target.value)}
+                    placeholder="#madera, #color_negro, #percusion"
+                  />
+                  {!tagsInput.trim() && <p className="missing-hint">Agrega los tags visibles o descriptivos del activo.</p>}
                 </div>
               </div>
             </div>
-          )}
 
-          {form.assetType === "reconocimiento" && (
-            <div className="subtype-box">
-              <h4>Datos de reconocimiento</h4>
-              <div className="asset-form-grid">
-                <div>
-                  <label className="input-label">Emisor</label>
-                  <input className="input-text" value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." />
-                </div>
-                <div>
-                  <label className="input-label">Fecha de emisión</label>
-                  <input className="input-text" type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
-                </div>
-                <div>
-                  <label className="input-label">Tipo de documento</label>
-                  <input className="input-text" value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" />
-                </div>
-                <div>
-                  <label className="input-label">Código de referencia</label>
-                  <input className="input-text" value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" />
-                </div>
+            <div className="asset-block additional-block">
+              <div className="asset-block-header">
+                <h4>Información adicional importante</h4>
+                <p className="placeholder-text">Campos descriptivos editables del activo según el tipo detectado.</p>
               </div>
-            </div>
-          )}
 
-          {form.assetType === "uniforme" && (
-            <div className="subtype-box">
-              <h4>Datos de uniforme</h4>
-              <div className="asset-form-grid">
-                <div>
-                  <label className="input-label">Talla</label>
-                  <input className="input-text" value={form.size} onChange={(e) => update("size", e.target.value)} placeholder="M" />
+              {form.assetType === "instrumento" && (
+                <div className="subtype-box">
+                  <h4>Datos de instrumento</h4>
+                  <div className="asset-form-grid">
+                    <div>
+                      <label className="input-label">Instrumento</label>
+                      <input className={fieldClass(form.instrumentType)} value={form.instrumentType} onChange={(e) => update("instrumentType", e.target.value)} placeholder="Guitarra" />
+                      {!form.instrumentType.trim() && <p className="missing-hint">Indica el tipo de instrumento.</p>}
+                    </div>
+                    <div>
+                      <label className="input-label">Marca</label>
+                      <input className={fieldClass(form.brand)} value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
+                      {!form.brand.trim() && <p className="missing-hint">Completa la marca si la conoces.</p>}
+                    </div>
+                    <div>
+                      <label className="input-label">Año de fabricación</label>
+                      <input className={fieldClass(form.fabricationYear)} type="number" min="1800" max="2100" value={form.fabricationYear} onChange={(e) => update("fabricationYear", e.target.value)} />
+                    </div>
+                  </div>
                 </div>
-                <div className="checkbox-group field-full">
-                  <label><input type="checkbox" checked={form.hasCinta} onChange={(e) => update("hasCinta", e.target.checked)} /> Cinta</label>
-                  <label><input type="checkbox" checked={form.hasJubon} onChange={(e) => update("hasJubon", e.target.checked)} /> Jubón</label>
-                  <label><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
-                </div>
-              </div>
-            </div>
-          )}
+              )}
 
-          {form.assetType === "otro" && (
-            <div className="subtype-box">
-              <h4>Tipo no identificado</h4>
-              <p className="placeholder-text">La IA no pudo clasificar claramente el activo. Puedes guardarlo como "otro" y completar notas/tags.</p>
+              {form.assetType === "reconocimiento" && (
+                <div className="subtype-box">
+                  <h4>Datos de reconocimiento</h4>
+                  <div className="asset-form-grid">
+                    <div>
+                      <label className="input-label">Emisor</label>
+                      <input className={fieldClass(form.issuer)} value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." />
+                      {!form.issuer.trim() && <p className="missing-hint">Completa la entidad emisora.</p>}
+                    </div>
+                    <div>
+                      <label className="input-label">Fecha de emisión</label>
+                      <input className={fieldClass(form.issueDate)} type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="input-label">Tipo de documento</label>
+                      <input className={fieldClass(form.documentType)} value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" />
+                    </div>
+                    <div>
+                      <label className="input-label">Código de referencia</label>
+                      <input className={fieldClass(form.referenceCode)} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {form.assetType === "uniforme" && (
+                <div className="subtype-box">
+                  <h4>Datos de uniforme</h4>
+                  <div className="asset-form-grid">
+                    <div>
+                      <label className="input-label">Talla</label>
+                      <input className={fieldClass(form.size)} value={form.size} onChange={(e) => update("size", e.target.value)} placeholder="M" />
+                    </div>
+                    <div className="checkbox-group field-full">
+                      <label><input type="checkbox" checked={form.hasCinta} onChange={(e) => update("hasCinta", e.target.checked)} /> Cinta</label>
+                      <label><input type="checkbox" checked={form.hasJubon} onChange={(e) => update("hasJubon", e.target.checked)} /> Jubón</label>
+                      <label><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {form.assetType === "otro" && (
+                <div className="subtype-box">
+                  <h4>Tipo no identificado</h4>
+                  <p className="placeholder-text">La IA no pudo clasificar claramente el activo. Ajusta tipo, notas y tags antes de guardar.</p>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+
+            <button className="btn-primary" type="submit" disabled={isSubmitting}>
+              {isSubmitting ? "Guardando..." : "Guardar activo"}
+            </button>
+          </>
+        )}
+
+        {!hasAiResult && <p className="placeholder-text">Cuando la IA termine, aquí verás el resultado editable con los campos faltantes resaltados.</p>}
 
         {error && <p className="error-text">{error}</p>}
         {message && <p className="success-text">{message}</p>}
-
-        <button className="btn-primary" type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Guardando..." : "Guardar activo"}
-        </button>
       </form>
     </section>
   );

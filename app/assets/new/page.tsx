@@ -43,7 +43,7 @@ export default function NewAssetPage() {
           <Link href="/" className="text-link">← Volver al panel</Link>
         </div>
 
-        <AssetEntryForm createdByEmail={user.email} />
+        <AssetEntryForm createdByEmail={user.email} createdByLabel={user.nickname || user.name} />
       </section>
     </main>
   );

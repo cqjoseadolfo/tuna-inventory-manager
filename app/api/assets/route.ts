@@ -67,6 +67,7 @@ export async function GET(request: Request) {
         a.current_value,
         a.status,
         a.notes,
+        usr.nickname AS holder_nickname,
         usr.email AS holder_email,
         usr.full_name AS holder_name,
         a.created_at,
@@ -97,6 +98,7 @@ export async function GET(request: Request) {
         a.current_value,
         a.status,
         a.notes,
+        usr.nickname,
         usr.email,
         usr.full_name,
         a.created_at,
@@ -124,8 +126,10 @@ export async function GET(request: Request) {
       currentValue: row.current_value,
       status: row.status,
       notes: row.notes,
+      holderNickname: row.holder_nickname,
       holderEmail: row.holder_email,
       holderName: row.holder_name,
+      holderDisplayName: row.holder_nickname || row.holder_name || row.holder_email,
       createdAt: row.created_at,
       tags: row.tags ? String(row.tags).split(",").map((t: string) => t.trim()).filter(Boolean) : [],
       instrument:
@@ -211,9 +215,11 @@ export async function POST(request: Request) {
     const assetId = crypto.randomUUID();
 
     let createdByUserId: string | null = null;
+    let holderDisplayName: string | null = null;
     if (createdByEmail) {
-      const user = await db.prepare("SELECT id FROM users WHERE email = ?").bind(createdByEmail).first();
+      const user = await db.prepare("SELECT id, nickname, full_name, email FROM users WHERE email = ?").bind(createdByEmail).first();
       createdByUserId = user?.id || null;
+      holderDisplayName = user?.nickname || user?.full_name || user?.email || null;
     }
 
     await db
@@ -297,7 +303,7 @@ export async function POST(request: Request) {
       assetId,
       assetCode: assetIdentifier,
       status: status || "bajo_responsabilidad",
-      holderEmail: createdByEmail || null,
+      holderName: holderDisplayName,
     });
   } catch (error: any) {
     console.error("Error creating asset:", error);

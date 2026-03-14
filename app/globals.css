@@ -708,9 +708,25 @@ body {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
+.input-missing {
+    border-color: rgba(251, 191, 36, 0.85);
+    box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.15);
+}
+
+.input-readonly {
+    background: rgba(15, 23, 42, 0.85);
+    color: #cbd5e1;
+}
+
 textarea.input-text {
     min-height: 90px;
     resize: vertical;
+}
+
+.missing-hint {
+    margin-top: 0.35rem;
+    color: #fcd34d;
+    font-size: 0.82rem;
 }
 
 .error-text {
