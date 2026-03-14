@@ -34,13 +34,12 @@ export default function NewAssetPage() {
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
       <section className="w-full max-w-xl space-y-4">
-        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+        <div className="flex items-center justify-between pt-1">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Registro de activos</p>
-            <h1 className="mt-2 text-3xl font-black text-slate-900">Nuevo activo</h1>
-            <p className="mt-1 text-slate-500">Primero registra la foto y luego completa los datos del activo.</p>
+            <h1 className="mt-1 text-3xl font-black text-slate-900">Nuevo activo</h1>
+            <Link href="/" className="mt-2 inline-block text-sm font-semibold text-slate-500 hover:text-slate-700">← Volver al panel</Link>
           </div>
-          <Link href="/" className="mt-4 inline-block font-semibold text-slate-600">← Volver al panel</Link>
         </div>
 
         <AssetEntryForm createdByEmail={user.email} createdByLabel={user.nickname || user.name} />

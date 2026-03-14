@@ -27,7 +27,7 @@ export default function Dashboard() {
 
   if (!user) return null;
 
-  const displayName = user.name?.trim() || "músico";
+  const displayName = user.nickname?.trim() || user.name?.trim() || "músico";
   const plan2026ImageUrl = "/api/ui/newsletter-image";
 
   useEffect(() => {
@@ -214,7 +214,8 @@ export default function Dashboard() {
           <div className="grid grid-cols-2 gap-4">
             <Link
               href="/assets/new"
-              className="group flex min-h-44 items-center justify-center rounded-[2rem] bg-gradient-to-br from-fuchsia-500 to-pink-500 px-4 py-5 text-center shadow-[0_16px_30px_rgba(217,70,239,0.25)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(217,70,239,0.32)]"
+              className="group flex min-h-44 items-center justify-center rounded-[2rem] px-4 py-5 text-center transition hover:-translate-y-0.5"
+              style={{ background: "linear-gradient(135deg, #004aad, #0062e0)", boxShadow: "0 16px 30px rgba(0,74,173,0.30)" }}
             >
               <div className="flex flex-col items-center justify-center gap-3">
                 <span className="grid h-14 w-14 place-items-center rounded-full bg-white/25 text-2xl leading-none text-white">➕</span>
@@ -224,7 +225,8 @@ export default function Dashboard() {
 
             <Link
               href="/assets/search"
-              className="group flex min-h-44 items-center justify-center rounded-[2rem] bg-gradient-to-br from-sky-500 to-blue-600 px-4 py-5 text-center shadow-[0_16px_30px_rgba(14,165,233,0.24)] transition hover:-translate-y-0.5 hover:shadow-[0_18px_34px_rgba(14,165,233,0.32)]"
+              className="group flex min-h-44 items-center justify-center rounded-[2rem] px-4 py-5 text-center transition hover:-translate-y-0.5"
+              style={{ background: "linear-gradient(135deg, #a8892e, #cbb155)", boxShadow: "0 16px 30px rgba(203,177,85,0.30)" }}
             >
               <div className="flex flex-col items-center justify-center gap-3">
                 <span className="grid h-14 w-14 place-items-center rounded-full bg-white/25 text-2xl leading-none text-white">🔎</span>
