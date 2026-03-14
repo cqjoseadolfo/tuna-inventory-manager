@@ -81,7 +81,9 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
 
   const fieldClass = (value?: string | number | null) => {
     const isMissing = hasAiResult && (!value || String(value).trim() === "");
-    return isMissing ? "input-text input-missing" : "input-text";
+    return isMissing
+      ? "w-full rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-slate-900 outline-none transition focus:border-lime-400 focus:bg-white focus:ring-2 focus:ring-lime-200"
+      : "w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-lime-400 focus:bg-white focus:ring-2 focus:ring-lime-200";
   };
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
@@ -256,84 +258,97 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
   };
 
   return (
-    <section className="asset-panel glass">
-      <h3>Registrar activo</h3>
-      <p className="placeholder-text">Primero registra la foto principal y deja que la IA proponga el resultado editable del activo.</p>
+    <section className="grid gap-4">
+      <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+        <div className="flex items-center gap-4">
+          <div className="grid h-16 w-16 place-items-center rounded-full bg-lime-100 text-3xl">🎻</div>
+          <div>
+            <h3 className="text-2xl font-black text-slate-900">Registrar activo</h3>
+            <p className="text-sm text-slate-500">Sube la foto y completa la ficha del activo con una interfaz más clara y editable.</p>
+          </div>
+        </div>
 
-      <form className="asset-form" onSubmit={submit}>
-        <div className="asset-block">
-          <div className="asset-block-header">
-            <h4>Foto principal</h4>
-            <p className="placeholder-text">Puedes tomar la foto desde la cámara o seleccionar una imagen de tu dispositivo.</p>
+        <div className="mt-5 grid grid-cols-2 gap-2 rounded-2xl bg-slate-100 p-1">
+          <div className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-semibold text-white">General</div>
+          <div className="px-4 py-3 text-center text-sm font-semibold text-slate-500">Detalles</div>
+        </div>
+      </div>
+
+      <form className="grid gap-4" onSubmit={submit}>
+        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+          <div className="mb-4">
+            <h4 className="text-xl font-bold text-slate-900">Foto principal</h4>
+            <p className="text-sm text-slate-500">Puedes tomar la foto desde la cámara o seleccionar una imagen desde tu dispositivo.</p>
           </div>
 
-          <div className="asset-form-grid">
-            <div className="field-full">
-              <label className="input-label">Foto principal</label>
-              <label className="photo-picker">
+          <div className="grid gap-4">
+            <div>
+              <label className="mb-2 block text-sm font-medium text-slate-700">Foto principal</label>
+              <label className="block cursor-pointer">
                 <input
-                  className="photo-input"
+                  className="hidden"
                   type="file"
                   accept="image/*"
                   capture="environment"
                   onChange={handlePhotoChange}
                 />
                 {previewUrl ? (
-                  <div className="photo-preview-wrap">
-                    <img src={previewUrl} alt="Vista previa del activo" className="photo-preview" />
-                    <span className="helper-text">{photoName || "Foto cargada"}</span>
+                  <div className="overflow-hidden rounded-[1.75rem] bg-slate-50 ring-1 ring-slate-200">
+                    <img src={previewUrl} alt="Vista previa del activo" className="h-64 w-full object-cover" />
+                    <div className="px-4 py-3 text-sm text-slate-500">{photoName || "Foto cargada"}</div>
                   </div>
                 ) : (
-                  <div className="photo-placeholder">
-                    <span className="photo-placeholder-icon">📷</span>
-                    <strong>Tomar o seleccionar foto</strong>
-                    <span className="helper-text">Desde la cámara o galería del dispositivo</span>
+                  <div className="flex min-h-56 flex-col items-center justify-center rounded-[1.75rem] border-2 border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                    <span className="text-4xl">📷</span>
+                    <strong className="mt-3 text-lg text-slate-900">Tomar o seleccionar foto</strong>
+                    <span className="mt-1 text-sm text-slate-500">Desde la cámara o galería del dispositivo</span>
                   </div>
                 )}
               </label>
             </div>
-            <div className="field-full">
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <button
                 type="button"
-                className="btn-secondary"
+                className="inline-flex items-center justify-center rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
                 onClick={autofillWithAi}
                 disabled={isAiLoading || !photoFile}
               >
                 {isAiLoading ? "Analizando foto..." : "Completar datos con IA"}
               </button>
-              <p className="helper-text">La IA detecta tipo de activo, notas de estado, datos secundarios y tags visibles.</p>
-              {aiMessage && <p className="success-text">{aiMessage}</p>}
+              <p className="text-sm text-slate-500">La IA detecta tipo de activo, notas visibles y etiquetas sugeridas.</p>
             </div>
+            {aiMessage && <p className="text-sm font-medium text-lime-600">{aiMessage}</p>}
           </div>
         </div>
 
         {hasAiResult && (
           <>
-            <div className="asset-block">
-              <div className="asset-block-header">
-                <h4>Resultado detectado</h4>
-                <p className="placeholder-text">Revisa y corrige los campos si la IA se equivoca. Los faltantes están resaltados para completarlos manualmente.</p>
+            <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-4">
+                <h4 className="text-xl font-bold text-slate-900">Resultado detectado</h4>
+                <p className="text-sm text-slate-500">Revisa los datos detectados y completa los campos faltantes antes de guardar.</p>
               </div>
 
-              <div className="asset-form-grid">
+              <div className="grid gap-4 md:grid-cols-2">
                 <div>
-                  <label className="input-label">Código del activo</label>
-                  <input className="input-text input-readonly" value="Se generará automáticamente" readOnly />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Código del activo</label>
+                  <input className="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-500 outline-none" value="Se generará automáticamente" readOnly />
                 </div>
 
                 <div>
-                  <label className="input-label">Estado</label>
-                  <input className="input-text input-readonly" value="Bajo responsabilidad" readOnly />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Estado</label>
+                  <input className="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-500 outline-none" value="Bajo responsabilidad" readOnly />
                 </div>
 
                 <div>
-                  <label className="input-label">Responsable actual</label>
-                  <input className="input-text input-readonly" value={createdByLabel} readOnly />
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Responsable actual</label>
+                  <input className="w-full rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-slate-500 outline-none" value={createdByLabel} readOnly />
                 </div>
 
                 <div>
-                  <label className="input-label">Tipo de activo</label>
-                  <select className="input-text" value={form.assetType} onChange={(e) => update("assetType", e.target.value as AssetType)}>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo de activo</label>
+                  <select className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 outline-none transition focus:border-lime-400 focus:bg-white focus:ring-2 focus:ring-lime-200" value={form.assetType} onChange={(e) => update("assetType", e.target.value as AssetType)}>
                     <option value="instrumento">Instrumento</option>
                     <option value="reconocimiento">Reconocimiento</option>
                     <option value="uniforme">Uniforme</option>
@@ -342,7 +357,7 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                 </div>
 
                 <div>
-                  <label className="input-label">Año de fabricación</label>
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Año de fabricación</label>
                   <input
                     className={fieldClass(form.fabricationYear)}
                     type="number"
@@ -352,117 +367,107 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                     onChange={(e) => update("fabricationYear", e.target.value)}
                     placeholder="Ej: 2018"
                   />
-                  {!form.fabricationYear.trim() && <p className="missing-hint">Completa el año de fabricación (o estimado).</p>}
+                  {!form.fabricationYear.trim() && <p className="mt-1 text-xs text-amber-600">Completa el año de fabricación o un estimado.</p>}
                 </div>
 
-                <div className="field-full">
-                  <label className="input-label">Notas del activo</label>
+                <div className="md:col-span-2">
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Notas del activo</label>
                   <textarea
-                    className={fieldClass(form.notes)}
+                    className={`${fieldClass(form.notes)} min-h-28 resize-y`}
                     value={form.notes}
                     onChange={(e) => update("notes", e.target.value)}
-                    placeholder="La IA puede completar este campo según el estado visual del activo"
+                    placeholder="Describe el estado visual o detalles importantes del activo"
                   />
-                  {!form.notes.trim() && <p className="missing-hint">Completa manualmente la descripción visual del activo.</p>}
+                  {!form.notes.trim() && <p className="mt-1 text-xs text-amber-600">Completa manualmente la descripción visual del activo.</p>}
                 </div>
 
-                <div className="field-full">
-                  <label className="input-label">Tags detectados</label>
+                <div className="md:col-span-2">
+                  <label className="mb-1.5 block text-sm font-medium text-slate-700">Tags detectados</label>
                   <textarea
-                    className={fieldClass(tagsInput)}
+                    className={`${fieldClass(tagsInput)} min-h-24 resize-y`}
                     value={tagsInput}
                     onChange={(e) => setTagsInput(e.target.value)}
                     placeholder="#madera, #color_negro, #percusion"
                   />
-                  {!tagsInput.trim() && <p className="missing-hint">Agrega los tags visibles o descriptivos del activo.</p>}
+                  {!tagsInput.trim() && <p className="mt-1 text-xs text-amber-600">Agrega las etiquetas visibles o descriptivas del activo.</p>}
                 </div>
               </div>
             </div>
 
-            <div className="asset-block additional-block">
-              <div className="asset-block-header">
-                <h4>Información adicional importante</h4>
-                <p className="placeholder-text">Campos descriptivos editables del activo según el tipo detectado.</p>
+            <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-4">
+                <h4 className="text-xl font-bold text-slate-900">Información adicional</h4>
+                <p className="text-sm text-slate-500">Completa los datos complementarios según el tipo de activo detectado.</p>
               </div>
 
               {form.assetType === "instrumento" && (
-                <div className="subtype-box">
-                  <h4>Datos de instrumento</h4>
-                  <div className="asset-form-grid">
-                    <div>
-                      <label className="input-label">Instrumento</label>
-                      <input className={fieldClass(form.instrumentType)} value={form.instrumentType} onChange={(e) => update("instrumentType", e.target.value)} placeholder="Guitarra" />
-                      {!form.instrumentType.trim() && <p className="missing-hint">Indica el tipo de instrumento.</p>}
-                    </div>
-                    <div>
-                      <label className="input-label">Marca</label>
-                      <input className={fieldClass(form.brand)} value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
-                      {!form.brand.trim() && <p className="missing-hint">Completa la marca si la conoces.</p>}
-                    </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Instrumento</label>
+                    <input className={fieldClass(form.instrumentType)} value={form.instrumentType} onChange={(e) => update("instrumentType", e.target.value)} placeholder="Guitarra" />
+                    {!form.instrumentType.trim() && <p className="mt-1 text-xs text-amber-600">Indica el tipo de instrumento.</p>}
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Marca</label>
+                    <input className={fieldClass(form.brand)} value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
+                    {!form.brand.trim() && <p className="mt-1 text-xs text-amber-600">Completa la marca si la conoces.</p>}
                   </div>
                 </div>
               )}
 
               {form.assetType === "reconocimiento" && (
-                <div className="subtype-box">
-                  <h4>Datos de reconocimiento</h4>
-                  <div className="asset-form-grid">
-                    <div>
-                      <label className="input-label">Emisor</label>
-                      <input className={fieldClass(form.issuer)} value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." />
-                      {!form.issuer.trim() && <p className="missing-hint">Completa la entidad emisora.</p>}
-                    </div>
-                    <div>
-                      <label className="input-label">Fecha de emisión</label>
-                      <input className={fieldClass(form.issueDate)} type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
-                    </div>
-                    <div>
-                      <label className="input-label">Tipo de documento</label>
-                      <input className={fieldClass(form.documentType)} value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" />
-                    </div>
-                    <div>
-                      <label className="input-label">Código de referencia</label>
-                      <input className={fieldClass(form.referenceCode)} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" />
-                    </div>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Emisor</label>
+                    <input className={fieldClass(form.issuer)} value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." />
+                    {!form.issuer.trim() && <p className="mt-1 text-xs text-amber-600">Completa la entidad emisora.</p>}
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Fecha de emisión</label>
+                    <input className={fieldClass(form.issueDate)} type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo de documento</label>
+                    <input className={fieldClass(form.documentType)} value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" />
+                  </div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label>
+                    <input className={fieldClass(form.referenceCode)} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" />
                   </div>
                 </div>
               )}
 
               {form.assetType === "uniforme" && (
-                <div className="subtype-box">
-                  <h4>Datos de uniforme</h4>
-                  <div className="asset-form-grid">
-                    <div>
-                      <label className="input-label">Talla</label>
-                      <input className={fieldClass(form.size)} value={form.size} onChange={(e) => update("size", e.target.value)} placeholder="M" />
-                    </div>
-                    <div className="checkbox-group field-full">
-                      <label><input type="checkbox" checked={form.hasCinta} onChange={(e) => update("hasCinta", e.target.checked)} /> Cinta</label>
-                      <label><input type="checkbox" checked={form.hasJubon} onChange={(e) => update("hasJubon", e.target.checked)} /> Jubón</label>
-                      <label><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
-                    </div>
+                <div className="grid gap-4">
+                  <div className="max-w-xs">
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Talla</label>
+                    <input className={fieldClass(form.size)} value={form.size} onChange={(e) => update("size", e.target.value)} placeholder="M" />
+                  </div>
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-100"><input type="checkbox" checked={form.hasCinta} onChange={(e) => update("hasCinta", e.target.checked)} /> Cinta</label>
+                    <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-100"><input type="checkbox" checked={form.hasJubon} onChange={(e) => update("hasJubon", e.target.checked)} /> Jubón</label>
+                    <label className="flex items-center gap-3 rounded-2xl bg-slate-50 px-4 py-3 text-sm text-slate-700 ring-1 ring-slate-100"><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
                   </div>
                 </div>
               )}
 
               {form.assetType === "otro" && (
-                <div className="subtype-box">
-                  <h4>Tipo no identificado</h4>
-                  <p className="placeholder-text">La IA no pudo clasificar claramente el activo. Ajusta tipo, notas y tags antes de guardar.</p>
+                <div className="rounded-2xl bg-slate-50 p-4 text-sm text-slate-500 ring-1 ring-slate-100">
+                  La IA no pudo clasificar claramente el activo. Ajusta el tipo, las notas y los tags antes de guardar.
                 </div>
               )}
             </div>
 
-            <button className="btn-primary" type="submit" disabled={isSubmitting}>
+            <button className="inline-flex w-full items-center justify-center rounded-2xl bg-lime-400 px-5 py-4 text-base font-bold text-slate-900 transition hover:-translate-y-0.5 hover:bg-lime-300 disabled:cursor-not-allowed disabled:opacity-70" type="submit" disabled={isSubmitting}>
               {isSubmitting ? "Guardando..." : "Guardar activo"}
             </button>
           </>
         )}
 
-        {!hasAiResult && <p className="placeholder-text">Cuando la IA termine, aquí verás el resultado editable con los campos faltantes resaltados.</p>}
+        {!hasAiResult && <p className="text-center text-sm text-slate-500">Cuando la IA termine, aquí verás el resultado editable con los campos faltantes resaltados.</p>}
 
-        {error && <p className="error-text">{error}</p>}
-        {message && <p className="success-text">{message}</p>}
+        {error && <p className="text-sm text-rose-500">{error}</p>}
+        {message && <p className="text-sm font-medium text-lime-600">{message}</p>}
       </form>
     </section>
   );
