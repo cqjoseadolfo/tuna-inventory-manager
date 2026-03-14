@@ -190,6 +190,90 @@ body {
     gap: 0.8rem;
 }
 
+.home-header {
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+}
+
+.greeting-area {
+    min-width: 0;
+}
+
+.greeting-text {
+    font-size: clamp(1.45rem, 4.8vw, 2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.15rem;
+}
+
+.header-actions {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.hamburger-btn {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    background: rgba(15, 23, 42, 0.68);
+    color: #f8fafc;
+    font-size: 1.1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, background 0.2s ease;
+}
+
+.hamburger-btn:hover {
+    transform: translateY(-1px);
+    background: rgba(37, 99, 235, 0.28);
+}
+
+.menu-panel {
+    position: absolute;
+    top: calc(100% + 0.6rem);
+    right: 0;
+    width: min(86vw, 260px);
+    border-radius: 0.9rem;
+    padding: 0.8rem;
+    display: grid;
+    gap: 0.45rem;
+    z-index: 20;
+}
+
+.menu-profile-block {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.2rem 0.1rem 0.45rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+    margin-bottom: 0.2rem;
+}
+
+.menu-link {
+    width: 100%;
+    text-align: left;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    background: rgba(15, 23, 42, 0.5);
+    color: #e2e8f0;
+    border-radius: 0.65rem;
+    padding: 0.55rem 0.65rem;
+    text-decoration: none;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.menu-link:hover {
+    border-color: rgba(96, 165, 250, 0.56);
+    background: rgba(37, 99, 235, 0.2);
+}
+
+.menu-danger {
+    color: #fecaca;
+}
+
 .logo-area h3 {
     font-size: 1.2rem;
     margin-bottom: 0.25rem;
@@ -247,6 +331,11 @@ body {
     gap: 0.75rem;
 }
 
+.main-action-grid {
+    display: grid;
+    gap: 0.75rem;
+}
+
 .data-section {
     margin-top: 1.5rem;
     padding-top: 1.25rem;
@@ -290,6 +379,14 @@ body {
 
 .action-card h3 {
     margin: 0.2rem 0 0.4rem;
+}
+
+.action-card-primary {
+    min-height: 176px;
+}
+
+.action-card-secondary {
+    min-height: 150px;
 }
 
 .action-card p,
@@ -1086,6 +1183,18 @@ textarea.input-text {
 
     .action-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+
+    .main-action-grid {
+        grid-template-columns: 1.25fr 0.9fr;
+    }
+
+    .action-card-primary {
+        min-height: 210px;
+    }
+
+    .action-card-secondary {
+        min-height: 184px;
     }
 
     .asset-form-grid {

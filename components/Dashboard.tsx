@@ -1,12 +1,31 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
+
+  const displayName = user.name?.trim() || "músico";
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!menuRef.current) return;
+      if (!menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const tagSummary = [
     { tag: "#instrumentos", count: 14, color: "#60a5fa" },
@@ -31,30 +50,59 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header glass">
-        <div className="logo-area">
-          <h3>Tuna Inventory</h3>
-          <p className="muted-text">Control de activos musicales</p>
+      <header className="dashboard-header home-header glass">
+        <div className="greeting-area">
+          <p className="greeting-text">Hola, {displayName} 👋</p>
+          <p className="muted-text">¿Qué deseas gestionar hoy?</p>
         </div>
-        <div className="user-profile">
-          <div className="user-details">
-            <span className="user-name">{user.name}</span>
-            <span className="user-email">{user.email}</span>
-          </div>
-          <img src={user.picture} alt="Avatar" className="avatar-small" />
-          <button className="btn-text logout" onClick={logout}>Salir</button>
+        <div className="header-actions" ref={menuRef}>
+          <button
+            type="button"
+            className="hamburger-btn"
+            aria-label="Abrir menú"
+            aria-expanded={isMenuOpen}
+            onClick={() => setIsMenuOpen((prev) => !prev)}
+          >
+            ☰
+          </button>
+
+          {isMenuOpen && (
+            <div className="menu-panel glass" role="menu" aria-label="Menú principal">
+              <div className="menu-profile-block">
+                <img src={user.picture} alt="Avatar" className="avatar-small" />
+                <div className="user-details">
+                  <span className="user-name">{user.name}</span>
+                  <span className="user-email">{user.email}</span>
+                </div>
+              </div>
+
+              <Link href="/profile" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+                Perfil
+              </Link>
+              <Link href="/settings" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+                Configuraciones
+              </Link>
+              <button
+                className="menu-link menu-danger"
+                role="menuitem"
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  logout();
+                }}
+              >
+                Salir
+              </button>
+            </div>
+          )}
         </div>
       </header>
       
       <main className="dashboard-content">
         <section className="actions-section">
-          <h2>¿Qué deseas hacer hoy?</h2>
-          <p className="placeholder-text">Elige una acción para comenzar a gestionar los activos.</p>
-
-          <div className="action-grid">
+          <div className="main-action-grid">
             <Link
               href="/assets/new"
-              className="action-card glass"
+              className="action-card glass action-card-primary"
             >
               <span className="action-icon">➕</span>
               <h3>Registrar un activo</h3>
@@ -63,7 +111,7 @@ export default function Dashboard() {
 
             <Link
               href="/assets/search"
-              className="action-card glass"
+              className="action-card glass action-card-secondary"
             >
               <span className="action-icon">🔎</span>
               <h3>Consultar por un activo</h3>
