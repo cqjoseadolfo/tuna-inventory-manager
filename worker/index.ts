@@ -44,6 +44,7 @@ export default {
 
     // Expose bindings to app route handlers running in edge runtime.
     // Route handlers can read globalThis.DB during the request lifecycle.
+    (globalThis as any).__RUNTIME_ENV = env;
     (globalThis as any).DB = env.DB;
     (globalThis as any).AWS_ACCESS_KEY_ID = env.AWS_ACCESS_KEY_ID;
     (globalThis as any).AWS_SECRET_ACCESS_KEY = env.AWS_SECRET_ACCESS_KEY;

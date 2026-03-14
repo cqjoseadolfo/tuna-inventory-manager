@@ -20,18 +20,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "La imagen supera el límite de 8MB" }, { status: 400 });
     }
 
-    const env = (globalThis as any).process?.env || {};
-    const accessKeyId = ((globalThis as any).AWS_ACCESS_KEY_ID || env.AWS_ACCESS_KEY_ID) as string | undefined;
-    const secretAccessKey = ((globalThis as any).AWS_SECRET_ACCESS_KEY || env.AWS_SECRET_ACCESS_KEY) as string | undefined;
-    const region = (((globalThis as any).AWS_REGION || env.AWS_REGION) as string | undefined) || "us-east-1";
-    const bucket = ((globalThis as any).AWS_S3_BUCKET || env.AWS_S3_BUCKET) as string | undefined;
-    const endpointOverride = ((globalThis as any).AWS_S3_ENDPOINT || env.AWS_S3_ENDPOINT) as string | undefined;
-    const publicBaseUrl = ((globalThis as any).AWS_S3_PUBLIC_BASE_URL || env.AWS_S3_PUBLIC_BASE_URL) as string | undefined;
+    const runtimeEnv = ((globalThis as any).__RUNTIME_ENV || {}) as Record<string, string | undefined>;
+    const processEnv = ((globalThis as any).process?.env || {}) as Record<string, string | undefined>;
+
+    const getEnv = (key: string) =>
+      runtimeEnv[key] || (globalThis as any)[key] || processEnv[key] || undefined;
+
+    const accessKeyId = getEnv("AWS_ACCESS_KEY_ID");
+    const secretAccessKey = getEnv("AWS_SECRET_ACCESS_KEY");
+    const region = getEnv("AWS_REGION") || "us-east-1";
+    const bucket = getEnv("AWS_S3_BUCKET");
+    const endpointOverride = getEnv("AWS_S3_ENDPOINT");
+    const publicBaseUrl = getEnv("AWS_S3_PUBLIC_BASE_URL");
 
     if (!accessKeyId || !secretAccessKey || !bucket) {
+      const present = {
+        AWS_ACCESS_KEY_ID: Boolean(accessKeyId),
+        AWS_SECRET_ACCESS_KEY: Boolean(secretAccessKey),
+        AWS_S3_BUCKET: Boolean(bucket),
+        AWS_REGION: Boolean(region),
+        AWS_S3_PUBLIC_BASE_URL: Boolean(publicBaseUrl),
+        AWS_S3_ENDPOINT: Boolean(endpointOverride),
+      };
       return NextResponse.json(
         {
           error: "Falta configurar AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY y AWS_S3_BUCKET en el runtime del Worker",
+          present,
         },
         { status: 500 }
       );
