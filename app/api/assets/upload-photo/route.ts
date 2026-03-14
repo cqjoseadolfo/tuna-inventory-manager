@@ -28,12 +28,12 @@ export async function POST(request: Request) {
 
     const accessKeyId = getEnv("AWS_ACCESS_KEY_ID");
     const secretAccessKey = getEnv("AWS_SECRET_ACCESS_KEY");
-    const region = getEnv("AWS_REGION") || "us-east-1";
+    const region = getEnv("AWS_REGION");
     const bucket = getEnv("AWS_S3_BUCKET");
     const endpointOverride = getEnv("AWS_S3_ENDPOINT");
     const publicBaseUrl = getEnv("AWS_S3_PUBLIC_BASE_URL");
 
-    if (!accessKeyId || !secretAccessKey || !bucket) {
+    if (!accessKeyId || !secretAccessKey || !bucket || !region) {
       const present = {
         AWS_ACCESS_KEY_ID: Boolean(accessKeyId),
         AWS_SECRET_ACCESS_KEY: Boolean(secretAccessKey),
@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       };
       return NextResponse.json(
         {
-          error: "Falta configurar AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY y AWS_S3_BUCKET en el runtime del Worker",
+          error: "Falta configurar AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_S3_BUCKET y AWS_REGION en el runtime del Worker",
           present,
         },
         { status: 500 }

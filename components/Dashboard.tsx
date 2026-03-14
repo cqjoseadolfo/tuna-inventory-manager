@@ -18,6 +18,7 @@ const DONUT_COLORS = ["#84cc16", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#1
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [planImageBroken, setPlanImageBroken] = useState(false);
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState("");
@@ -27,8 +28,7 @@ export default function Dashboard() {
   if (!user) return null;
 
   const displayName = user.name?.trim() || "músico";
-  // Reemplaza esta URL cuando subas tu imagen final a S3
-  const plan2026ImageUrl = "https://tuna-inventory-manager-tfciff-arequipa-peru-tconan.s3.us-east-2.amazonaws.com/ui/home/newsletter/plan-2026-kid-v1.png";
+  const plan2026ImageUrl = "/api/ui/newsletter-image";
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -235,21 +235,29 @@ export default function Dashboard() {
         </section>
 
         <section>
-          <article className="flex items-center justify-between gap-4 rounded-[2rem] bg-slate-900 px-5 py-5 text-white shadow-[0_18px_30px_rgba(15,23,42,0.18)]">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-300">Newsletter</p>
-              <h3 className="mt-1 text-2xl font-black">Plan 2026</h3>
-              <p className="mt-1 text-sm text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
+          <article className="flex min-h-[174px] items-stretch justify-between gap-4 rounded-[2rem] bg-[#0b1338] px-6 py-6 text-white shadow-[0_18px_30px_rgba(15,23,42,0.20)]">
+            <div className="flex min-w-0 flex-1 flex-col justify-between">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lime-300">Newsletter</p>
+                <h3 className="mt-2 text-[48px] font-black leading-[0.95]">Plan 2026</h3>
+              </div>
+              <p className="max-w-[18rem] text-[18px] leading-[1.25] text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
             </div>
 
-            {plan2026ImageUrl ? (
-              <img
-                src={plan2026ImageUrl}
-                alt="Plan 2026"
-                className="h-24 w-24 flex-shrink-0 rounded-2xl object-cover"
-              />
+            {!planImageBroken ? (
+              <div className="flex w-[132px] flex-shrink-0 flex-col items-center justify-between rounded-2xl border border-white/15 px-2 py-2">
+                <span className="text-[44px] font-light leading-none text-slate-300">T</span>
+                <img
+                  src={plan2026ImageUrl}
+                  alt="Plan 2026"
+                  className="h-[78px] w-[96px] rounded-xl object-cover"
+                  onError={() => setPlanImageBroken(true)}
+                />
+              </div>
             ) : (
-              <div className="grid h-24 w-24 flex-shrink-0 place-items-center rounded-2xl bg-white/10 text-4xl">🧒</div>
+              <div className="grid w-[132px] flex-shrink-0 place-items-center rounded-2xl border border-white/15 bg-white/5 px-3 py-3 text-center">
+                <span className="text-xs text-slate-300">No se pudo cargar imagen</span>
+              </div>
             )}
           </article>
         </section>
