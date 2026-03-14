@@ -1,0 +1,147 @@
+import { NextResponse } from "next/server";
+
+export const runtime = "edge";
+
+type SuggestedAssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
+
+type AiSuggestion = {
+  assetType?: SuggestedAssetType;
+  notes?: string;
+  instrumentType?: string | null;
+  issueDate?: string | null;
+  tags?: string[];
+};
+
+const extractJsonObject = (text: string): AiSuggestion | null => {
+  const trimmed = (text || "").trim();
+  if (!trimmed) return null;
+
+  try {
+    return JSON.parse(trimmed);
+  } catch {
+    const start = trimmed.indexOf("{");
+    const end = trimmed.lastIndexOf("}");
+    if (start === -1 || end === -1 || end <= start) return null;
+    const slice = trimmed.slice(start, end + 1);
+    try {
+      return JSON.parse(slice);
+    } catch {
+      return null;
+    }
+  }
+};
+
+const normalizeTags = (value: unknown): string[] => {
+  if (!Array.isArray(value)) return [];
+  return value
+    .map((item) => String(item || "").trim().toLowerCase())
+    .filter(Boolean)
+    .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
+};
+
+export async function POST(request: Request) {
+  try {
+    const formData = await request.formData();
+    const file = formData.get("file");
+
+    if (!(file instanceof File)) {
+      return NextResponse.json({ error: "Archivo no válido" }, { status: 400 });
+    }
+
+    if (!file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "Solo se permiten imágenes" }, { status: 400 });
+    }
+
+    if (file.size > 8 * 1024 * 1024) {
+      return NextResponse.json({ error: "La imagen supera el límite de 8MB" }, { status: 400 });
+    }
+
+    const runtimeEnv = ((globalThis as any).__RUNTIME_ENV || {}) as Record<string, string | undefined>;
+    const processEnv = ((globalThis as any).process?.env || {}) as Record<string, string | undefined>;
+    const getEnv = (key: string) => runtimeEnv[key] || (globalThis as any)[key] || processEnv[key] || undefined;
+
+    const openAiKey = getEnv("OPENAI_API_KEY");
+    const openAiBaseUrl = getEnv("OPENAI_BASE_URL") || "https://api.openai.com/v1";
+    const openAiModel = getEnv("OPENAI_MODEL") || "gpt-4.1-mini";
+
+    if (!openAiKey) {
+      return NextResponse.json(
+        {
+          error: "Falta OPENAI_API_KEY en el runtime del Worker",
+        },
+        { status: 500 }
+      );
+    }
+
+    const imageBytes = await file.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBytes)));
+    const dataUrl = `data:${file.type};base64,${base64}`;
+
+    const prompt = `Analiza la imagen de un activo de inventario musical y responde SOLO JSON valido con esta estructura:
+{
+  "assetType": "instrumento|reconocimiento|uniforme|otro",
+  "notes": "descripcion corta del estado visual: limpio, golpes, rayones, faltantes, deterioro, etc",
+  "instrumentType": "si es instrumento, tipo probable (guitarra, violin, pandereta, etc) o null",
+  "issueDate": "si parece reconocimiento con fecha legible usar YYYY-MM-DD, si no null",
+  "tags": ["#color_negro", "#madera", "#instrumento_cuerdas", "#percusion", ...]
+}
+
+Reglas:
+- Si no estas seguro del tipo, usa "otro".
+- Si es uniforme, no inventes datos secundarios; deja instrumentType null e issueDate null.
+- Incluye tags de colores visibles, material (madera, metal, plastico, tela), y clasificacion musical (cuerdas, vientos, percusion) cuando aplique.
+- No agregues texto fuera del JSON.`;
+
+    const response = await fetch(`${openAiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${openAiKey}`,
+      },
+      body: JSON.stringify({
+        model: openAiModel,
+        temperature: 0.2,
+        messages: [
+          {
+            role: "user",
+            content: [
+              { type: "text", text: prompt },
+              { type: "image_url", image_url: { url: dataUrl } },
+            ],
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      const message = data?.error?.message || "No se pudo analizar la imagen con IA";
+      return NextResponse.json({ error: message }, { status: 500 });
+    }
+
+    const rawText = data?.choices?.[0]?.message?.content || "";
+    const parsed = extractJsonObject(rawText);
+
+    if (!parsed) {
+      return NextResponse.json({ error: "La IA devolvió una respuesta inválida" }, { status: 500 });
+    }
+
+    const allowedTypes: SuggestedAssetType[] = ["instrumento", "reconocimiento", "uniforme", "otro"];
+    const assetType = allowedTypes.includes(parsed.assetType as SuggestedAssetType)
+      ? (parsed.assetType as SuggestedAssetType)
+      : "otro";
+
+    const payload: AiSuggestion = {
+      assetType,
+      notes: String(parsed.notes || "").trim() || null,
+      instrumentType: String(parsed.instrumentType || "").trim() || null,
+      issueDate: String(parsed.issueDate || "").trim() || null,
+      tags: normalizeTags(parsed.tags),
+    };
+
+    return NextResponse.json({ success: true, suggestion: payload });
+  } catch (error: any) {
+    console.error("Error analyzing asset image with AI:", error);
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
+  }
+}

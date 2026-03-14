@@ -23,6 +23,8 @@
   "vars": {
     "AWS_REGION": "us-east-2",
     "AWS_S3_BUCKET": "tuna-inventory-manager-tfciff-arequipa-peru-tconan",
-    "AWS_S3_PUBLIC_BASE_URL": "https://tuna-inventory-manager-tfciff-arequipa-peru-tconan.s3.us-east-2.amazonaws.com"
+    "AWS_S3_PUBLIC_BASE_URL": "https://tuna-inventory-manager-tfciff-arequipa-peru-tconan.s3.us-east-2.amazonaws.com",
+    "OPENAI_BASE_URL": "https://api.openai.com/v1",
+    "OPENAI_MODEL": "gpt-4.1-mini"
   }
 }

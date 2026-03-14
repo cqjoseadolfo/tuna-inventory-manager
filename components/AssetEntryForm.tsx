@@ -2,14 +2,14 @@
 
 import { useMemo, useState } from "react";
 
-type AssetType = "instrumento" | "reconocimiento" | "uniforme";
+type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 interface Props {
   createdByEmail: string;
 }
 
 interface FormState {
   assetType: AssetType;
-  assetCode: string;
+  notes: string;
   instrumentType: string;
   brand: string;
   fabricationYear: string;
@@ -25,7 +25,7 @@ interface FormState {
 
 const initialState: FormState = {
   assetType: "instrumento",
-  assetCode: "",
+  notes: "",
   instrumentType: "",
   brand: "",
   fabricationYear: "",
@@ -42,8 +42,11 @@ const initialState: FormState = {
 export default function AssetEntryForm({ createdByEmail }: Props) {
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAiLoading, setIsAiLoading] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [aiMessage, setAiMessage] = useState("");
+  const [aiTags, setAiTags] = useState<string[]>([]);
   const [photoName, setPhotoName] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -54,15 +57,17 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
         ? "#instrumentos"
         : form.assetType === "reconocimiento"
           ? "#reconocimientos"
-          : "#uniformes";
+          : form.assetType === "uniforme"
+            ? "#uniformes"
+            : "#otros";
 
     const extraTag =
       form.assetType === "instrumento" && form.instrumentType.trim()
         ? `#${form.instrumentType.trim().toLowerCase().replace(/\s+/g, "-")}`
         : null;
 
-    return [baseTag, extraTag].filter(Boolean) as string[];
-  }, [form.assetType, form.instrumentType]);
+    return Array.from(new Set([baseTag, extraTag, ...aiTags].filter(Boolean) as string[]));
+  }, [form.assetType, form.instrumentType, aiTags]);
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -78,9 +83,66 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     }
 
     setError("");
+    setAiMessage("");
     setPhotoName(file.name);
     setPhotoFile(file);
     setPreviewUrl(URL.createObjectURL(file));
+  };
+
+  const autofillWithAi = async () => {
+    setError("");
+    setAiMessage("");
+
+    if (!photoFile) {
+      setError("Primero toma o selecciona una foto.");
+      return;
+    }
+
+    try {
+      setIsAiLoading(true);
+
+      const formData = new FormData();
+      formData.append("file", photoFile);
+
+      const response = await fetch("/api/assets/ai-analyze", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "No se pudo analizar la foto con IA.");
+      }
+
+      const suggestion = data?.suggestion || {};
+      const suggestedType = suggestion.assetType as AssetType | undefined;
+
+      setForm((prev) => ({
+        ...prev,
+        assetType: suggestedType && ["instrumento", "reconocimiento", "uniforme", "otro"].includes(suggestedType)
+          ? suggestedType
+          : prev.assetType,
+        notes: suggestion.notes || prev.notes,
+        instrumentType:
+          (suggestedType || prev.assetType) === "instrumento"
+            ? suggestion.instrumentType || prev.instrumentType
+            : prev.instrumentType,
+        issueDate:
+          (suggestedType || prev.assetType) === "reconocimiento"
+            ? suggestion.issueDate || prev.issueDate
+            : prev.issueDate,
+      }));
+
+      const incomingTags = Array.isArray(suggestion.tags)
+        ? suggestion.tags.map((t: string) => String(t || "").trim().toLowerCase()).filter(Boolean)
+        : [];
+      setAiTags(Array.from(new Set(incomingTags.map((t) => (t.startsWith("#") ? t : `#${t}`)))));
+      setAiMessage("IA completó los campos detectados en la foto.");
+    } catch (err: any) {
+      setError(err.message || "Error inesperado al usar IA.");
+    } finally {
+      setIsAiLoading(false);
+    }
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -88,23 +150,8 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     setError("");
     setMessage("");
 
-    if (!form.assetCode.trim()) {
-      setError("Ingresa el código o número de rotulación.");
-      return;
-    }
-
     if (!photoFile) {
       setError("Toma o selecciona una foto principal del activo.");
-      return;
-    }
-
-    if (form.assetType === "instrumento" && (!form.instrumentType.trim() || !form.brand.trim())) {
-      setError("Para instrumento se requiere tipo de instrumento y marca.");
-      return;
-    }
-
-    if (form.assetType === "reconocimiento" && !form.issuer.trim()) {
-      setError("Para reconocimiento se requiere el emisor.");
       return;
     }
 
@@ -114,7 +161,6 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
       const photoData = new FormData();
       photoData.append("file", photoFile);
       photoData.append("assetType", form.assetType);
-      photoData.append("assetCode", form.assetCode.trim());
 
       const uploadResponse = await fetch("/api/assets/upload-photo", {
         method: "POST",
@@ -131,20 +177,18 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           assetType: form.assetType,
-          code: form.assetCode.trim(),
-          name: form.assetCode.trim(),
           photoUrl: uploadResult.url,
           photoId: uploadResult.id,
           currentValue: 0,
-          status: "disponible",
-          notes: null,
+          status: "bajo_responsabilidad",
+          notes: form.notes.trim() || null,
           tags: normalizedTags,
           createdByEmail,
           instrument:
             form.assetType === "instrumento"
               ? {
-                  instrumentType: form.instrumentType.trim(),
-                  brand: form.brand.trim(),
+                  instrumentType: form.instrumentType.trim() || null,
+                  brand: form.brand.trim() || null,
                   fabricationYear: form.fabricationYear ? Number(form.fabricationYear) : null,
                 }
               : null,
@@ -172,10 +216,12 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || "No se pudo registrar el activo.");
 
-      setMessage("Activo registrado correctamente.");
+      setMessage(`Activo registrado correctamente. Código generado: ${data.assetCode || "N/D"}`);
       setPhotoName("");
       setPhotoFile(null);
       setPreviewUrl("");
+      setAiMessage("");
+      setAiTags([]);
       setForm((prev) => ({ ...initialState, assetType: prev.assetType }));
     } catch (err: any) {
       setError(err.message || "Error inesperado.");
@@ -221,6 +267,18 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
                 )}
               </label>
             </div>
+            <div className="field-full">
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={autofillWithAi}
+                disabled={isAiLoading || !photoFile}
+              >
+                {isAiLoading ? "Analizando foto..." : "Completar datos con IA"}
+              </button>
+              <p className="helper-text">La IA detecta tipo de activo, notas de estado, datos secundarios y tags visibles.</p>
+              {aiMessage && <p className="success-text">{aiMessage}</p>}
+            </div>
           </div>
         </div>
 
@@ -237,12 +295,28 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
                 <option value="instrumento">Instrumento</option>
                 <option value="reconocimiento">Reconocimiento</option>
                 <option value="uniforme">Uniforme</option>
+                <option value="otro">Otro</option>
               </select>
             </div>
 
             <div>
-              <label className="input-label">Código / N° de rotulación</label>
-              <input className="input-text" value={form.assetCode} onChange={(e) => update("assetCode", e.target.value)} placeholder="Ej. TUNA-INS-001" />
+              <label className="input-label">Estado</label>
+              <input className="input-text" value="Bajo responsabilidad" readOnly />
+            </div>
+
+            <div className="field-full">
+              <label className="input-label">Responsable actual</label>
+              <input className="input-text" value={createdByEmail} readOnly />
+            </div>
+
+            <div className="field-full">
+              <label className="input-label">Notas del activo</label>
+              <textarea
+                className="input-text"
+                value={form.notes}
+                onChange={(e) => update("notes", e.target.value)}
+                placeholder="La IA puede completar este campo según el estado visual del activo"
+              />
             </div>
           </div>
         </div>
@@ -311,6 +385,13 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
                   <label><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
                 </div>
               </div>
+            </div>
+          )}
+
+          {form.assetType === "otro" && (
+            <div className="subtype-box">
+              <h4>Tipo no identificado</h4>
+              <p className="placeholder-text">La IA no pudo clasificar claramente el activo. Puedes guardarlo como "otro" y completar notas/tags.</p>
             </div>
           )}
         </div>

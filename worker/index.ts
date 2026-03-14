@@ -18,6 +18,9 @@ interface Env {
   AWS_S3_BUCKET?: string;
   AWS_S3_ENDPOINT?: string;
   AWS_S3_PUBLIC_BASE_URL?: string;
+  OPENAI_API_KEY?: string;
+  OPENAI_BASE_URL?: string;
+  OPENAI_MODEL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -52,6 +55,9 @@ export default {
     (globalThis as any).AWS_S3_BUCKET = env.AWS_S3_BUCKET;
     (globalThis as any).AWS_S3_ENDPOINT = env.AWS_S3_ENDPOINT;
     (globalThis as any).AWS_S3_PUBLIC_BASE_URL = env.AWS_S3_PUBLIC_BASE_URL;
+    (globalThis as any).OPENAI_API_KEY = env.OPENAI_API_KEY;
+    (globalThis as any).OPENAI_BASE_URL = env.OPENAI_BASE_URL;
+    (globalThis as any).OPENAI_MODEL = env.OPENAI_MODEL;
 
     // Image optimization via Cloudflare Images binding.
     // The parseImageParams validation inside handleImageOptimization

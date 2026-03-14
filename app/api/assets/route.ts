@@ -3,7 +3,23 @@ import { getDbBinding } from "@/app/lib/db";
 
 export const runtime = "edge";
 
-type AssetType = "instrumento" | "reconocimiento" | "uniforme";
+type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
+
+const generateAssetCode = (assetType: AssetType) => {
+  const prefixMap: Record<AssetType, string> = {
+    instrumento: "INS",
+    reconocimiento: "REC",
+    uniforme: "UNI",
+    otro: "OTR",
+  };
+
+  const now = new Date();
+  const yyyy = now.getUTCFullYear();
+  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(now.getUTCDate()).padStart(2, "0");
+  const suffix = crypto.randomUUID().slice(0, 6).toUpperCase();
+  return `TUNA-${prefixMap[assetType]}-${yyyy}${mm}${dd}-${suffix}`;
+};
 
 export async function GET(request: Request) {
   try {
@@ -51,6 +67,8 @@ export async function GET(request: Request) {
         a.current_value,
         a.status,
         a.notes,
+        usr.email AS holder_email,
+        usr.full_name AS holder_name,
         a.created_at,
         i.instrument_type,
         i.brand,
@@ -65,6 +83,7 @@ export async function GET(request: Request) {
         u.has_greguesco,
         GROUP_CONCAT(DISTINCT t.tag) AS tags
       FROM assets a
+      LEFT JOIN users usr ON usr.id = a.created_by_user_id
       LEFT JOIN asset_instruments i ON i.asset_id = a.id
       LEFT JOIN asset_recognitions r ON r.asset_id = a.id
       LEFT JOIN asset_uniforms u ON u.asset_id = a.id
@@ -78,6 +97,8 @@ export async function GET(request: Request) {
         a.current_value,
         a.status,
         a.notes,
+        usr.email,
+        usr.full_name,
         a.created_at,
         i.instrument_type,
         i.brand,
@@ -103,6 +124,8 @@ export async function GET(request: Request) {
       currentValue: row.current_value,
       status: row.status,
       notes: row.notes,
+      holderEmail: row.holder_email,
+      holderName: row.holder_name,
       createdAt: row.created_at,
       tags: row.tags ? String(row.tags).split(",").map((t: string) => t.trim()).filter(Boolean) : [],
       instrument:
@@ -159,7 +182,7 @@ export async function POST(request: Request) {
     } = body as {
       assetType: AssetType;
       code?: string;
-      name: string;
+      name?: string;
       photoUrl: string;
       currentValue: number;
       status?: string;
@@ -171,14 +194,15 @@ export async function POST(request: Request) {
       uniform?: { size?: string | null; hasCinta?: boolean; hasJubon?: boolean; hasGreguesco?: boolean } | null;
     };
 
-    const assetIdentifier = String(code || name || "").trim();
+    const generatedCode = generateAssetCode(assetType || "otro");
+    const assetIdentifier = String(code || name || generatedCode).trim();
     const parsedCurrentValue = Number(currentValue ?? 0);
 
     if (!assetType || !assetIdentifier || !photoUrl || Number.isNaN(parsedCurrentValue)) {
       return NextResponse.json({ error: "assetType, código/nombre y photoUrl son requeridos" }, { status: 400 });
     }
 
-    const validTypes = ["instrumento", "reconocimiento", "uniforme"];
+    const validTypes = ["instrumento", "reconocimiento", "uniforme", "otro"];
     if (!validTypes.includes(assetType)) {
       return NextResponse.json({ error: "assetType inválido" }, { status: 400 });
     }
@@ -203,31 +227,28 @@ export async function POST(request: Request) {
         assetIdentifier,
         photoUrl,
         parsedCurrentValue,
-        status || "disponible",
+        status || "bajo_responsabilidad",
         notes ?? null,
         createdByUserId
       )
       .run();
 
     if (assetType === "instrumento") {
-      if (!instrument?.instrumentType || !instrument?.brand) {
-        return NextResponse.json({ error: "instrumentType y brand son requeridos para instrumentos" }, { status: 400 });
-      }
-
       await db
         .prepare(
           `INSERT INTO asset_instruments (asset_id, instrument_type, brand, fabrication_year)
            VALUES (?, ?, ?, ?)`
         )
-        .bind(assetId, instrument.instrumentType, instrument.brand, instrument.fabricationYear ?? null)
+        .bind(
+          assetId,
+          instrument?.instrumentType || "No identificado",
+          instrument?.brand || "No identificado",
+          instrument?.fabricationYear ?? null
+        )
         .run();
     }
 
     if (assetType === "reconocimiento") {
-      if (!recognition?.issuer) {
-        return NextResponse.json({ error: "issuer es requerido para reconocimientos" }, { status: 400 });
-      }
-
       await db
         .prepare(
           `INSERT INTO asset_recognitions (asset_id, issuer, issue_date, document_type, reference_code)
@@ -235,10 +256,10 @@ export async function POST(request: Request) {
         )
         .bind(
           assetId,
-          recognition.issuer,
-          recognition.issueDate ?? null,
-          recognition.documentType ?? null,
-          recognition.referenceCode ?? null
+          recognition?.issuer || "No identificado",
+          recognition?.issueDate ?? null,
+          recognition?.documentType ?? null,
+          recognition?.referenceCode ?? null
         )
         .run();
     }
@@ -271,7 +292,13 @@ export async function POST(request: Request) {
       }
     }
 
-    return NextResponse.json({ success: true, assetId });
+    return NextResponse.json({
+      success: true,
+      assetId,
+      assetCode: assetIdentifier,
+      status: status || "bajo_responsabilidad",
+      holderEmail: createdByEmail || null,
+    });
   } catch (error: any) {
     console.error("Error creating asset:", error);
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 });
