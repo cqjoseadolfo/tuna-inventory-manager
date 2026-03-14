@@ -4,9 +4,24 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
 
+type AssetItem = {
+  id: string;
+  status: string;
+  tags: string[];
+  holderEmail?: string | null;
+};
+
+type DashboardFilter = "all" | "mine" | "requested";
+
+const DONUT_COLORS = ["#84cc16", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#3b82f6"];
+
 export default function Dashboard() {
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [assets, setAssets] = useState<AssetItem[]>([]);
+  const [isStatsLoading, setIsStatsLoading] = useState(true);
+  const [statsError, setStatsError] = useState("");
+  const [activeFilter, setActiveFilter] = useState<DashboardFilter>("all");
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
@@ -49,26 +64,78 @@ export default function Dashboard() {
     };
   }, [isMenuOpen]);
 
-  const tagSummary = [
-    { tag: "#instrumentos", count: 14, color: "#60a5fa" },
-    { tag: "#reconocimientos", count: 5, color: "#f59e0b" },
-    { tag: "#trofeos", count: 3, color: "#a78bfa" },
-    { tag: "#uniformes", count: 2, color: "#34d399" },
-  ];
+  useEffect(() => {
+    const loadDashboardAssets = async () => {
+      setIsStatsLoading(true);
+      setStatsError("");
+      try {
+        const response = await fetch("/api/assets?limit=100");
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || "No se pudieron cargar los activos.");
+        }
+        setAssets(Array.isArray(data?.items) ? data.items : []);
+      } catch (error: any) {
+        setStatsError(error?.message || "No se pudieron cargar los datos.");
+      } finally {
+        setIsStatsLoading(false);
+      }
+    };
 
-  const totalAssets = tagSummary.reduce((acc, item) => acc + item.count, 0);
-  const onLoanAssets = 5;
-  const availableAssets = Math.max(totalAssets - onLoanAssets, 0);
+    loadDashboardAssets();
+  }, []);
 
-  const donutStops = tagSummary
-    .map((item, index, arr) => {
-      const start = arr.slice(0, index).reduce((acc, current) => acc + current.count, 0);
-      const end = start + item.count;
-      const startPct = ((start / totalAssets) * 100).toFixed(2);
-      const endPct = ((end / totalAssets) * 100).toFixed(2);
-      return `${item.color} ${startPct}% ${endPct}%`;
-    })
-    .join(", ");
+  const isMine = (item: AssetItem) => {
+    const holder = String(item.holderEmail || "").toLowerCase().trim();
+    return item.status === "bajo_responsabilidad" && holder === user.email.toLowerCase().trim();
+  };
+
+  const totalAssets = assets.length;
+  const inPossessionCount = assets.filter(isMine).length;
+  const requestedCount = assets.filter((item: AssetItem) => item.status === "solicitado").length;
+
+  const filteredAssets =
+    activeFilter === "mine"
+      ? assets.filter(isMine)
+      : activeFilter === "requested"
+        ? assets.filter((item: AssetItem) => item.status === "solicitado")
+        : assets;
+
+  const tagMap = new Map<string, number>();
+  filteredAssets.forEach((item: AssetItem) => {
+    (item.tags || []).forEach((rawTag: string) => {
+      const tag = String(rawTag || "").trim().toLowerCase();
+      if (!tag) return;
+      tagMap.set(tag, (tagMap.get(tag) || 0) + 1);
+    });
+  });
+
+  const tagSummary = Array.from(tagMap.entries())
+    .map(([tag, count], index) => ({
+      tag,
+      count,
+      color: DONUT_COLORS[index % DONUT_COLORS.length],
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 12);
+
+  const chartTotal = tagSummary.reduce((sum, item) => sum + item.count, 0);
+
+  const donutStops =
+    chartTotal > 0
+      ? tagSummary
+          .map((item, index, arr) => {
+            const start = arr.slice(0, index).reduce((acc, current) => acc + current.count, 0);
+            const end = start + item.count;
+            const startPct = ((start / chartTotal) * 100).toFixed(2);
+            const endPct = ((end / chartTotal) * 100).toFixed(2);
+            return `${item.color} ${startPct}% ${endPct}%`;
+          })
+          .join(", ")
+      : "#e2e8f0 0% 100%";
+
+  const activeFilterLabel =
+    activeFilter === "mine" ? "En posesión" : activeFilter === "requested" ? "Solicitados" : "Activos";
 
   return (
     <div className="relative w-full max-w-xl">
@@ -166,48 +233,65 @@ export default function Dashboard() {
         </section>
 
         <section className="grid gap-3">
-          <div className="rounded-[2rem] bg-slate-900 px-5 py-5 text-white shadow-[0_18px_30px_rgba(15,23,42,0.18)]">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-3xl font-black">Sigue así</p>
-                <p className="mt-1 max-w-[14rem] text-sm text-slate-300">Gestiona los activos del grupo de forma rápida y ordenada.</p>
-              </div>
-              <span className="rounded-full bg-lime-300 px-3 py-1 text-xs font-bold text-slate-900">Top</span>
-            </div>
-            <div className="mt-5 flex items-end justify-between">
-              <div className="flex gap-1">
-                <span className="h-2.5 w-2.5 rounded-full bg-lime-300"></span>
-                <span className="h-2.5 w-2.5 rounded-full bg-lime-300/70"></span>
-                <span className="h-2.5 w-2.5 rounded-full bg-white/30"></span>
-                <span className="h-2.5 w-2.5 rounded-full bg-white/20"></span>
-              </div>
-              <span className="text-6xl">🏆</span>
-            </div>
+          <div className="grid grid-cols-3 gap-3">
+            <button
+              type="button"
+              onClick={() => setActiveFilter("all")}
+              className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
+                activeFilter === "all"
+                  ? "bg-slate-900 text-white ring-slate-900 shadow-md"
+                  : "bg-white text-slate-900 ring-slate-100 shadow-sm"
+              }`}
+            >
+              <span className="block text-3xl font-black">{totalAssets}</span>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "all" ? "text-slate-300" : "text-slate-500"}`}>
+                Activos
+              </h4>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveFilter("mine")}
+              className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
+                activeFilter === "mine"
+                  ? "bg-slate-900 text-white ring-slate-900 shadow-md"
+                  : "bg-white text-slate-900 ring-slate-100 shadow-sm"
+              }`}
+            >
+              <span className="block text-3xl font-black">{inPossessionCount}</span>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-slate-300" : "text-slate-500"}`}>
+                En posesión
+              </h4>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setActiveFilter("requested")}
+              className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
+                activeFilter === "requested"
+                  ? "bg-slate-900 text-white ring-slate-900 shadow-md"
+                  : "bg-white text-slate-900 ring-slate-100 shadow-sm"
+              }`}
+            >
+              <span className="block text-3xl font-black">{requestedCount}</span>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "requested" ? "text-slate-300" : "text-slate-500"}`}>
+                Solicitados
+              </h4>
+            </button>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
-            <div className="rounded-[1.6rem] bg-white px-3 py-4 text-center shadow-sm ring-1 ring-slate-100">
-              <span className="block text-3xl font-black text-slate-900">{totalAssets}</span>
-              <h4 className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Activos</h4>
-            </div>
-            <div className="rounded-[1.6rem] bg-white px-3 py-4 text-center shadow-sm ring-1 ring-slate-100">
-              <span className="block text-3xl font-black text-slate-900">{onLoanAssets}</span>
-              <h4 className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">En posesión</h4>
-            </div>
-            <div className="rounded-[1.6rem] bg-white px-3 py-4 text-center shadow-sm ring-1 ring-slate-100">
-              <span className="block text-3xl font-black text-slate-900">{availableAssets}</span>
-              <h4 className="mt-1 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Solicitados</h4>
-            </div>
-          </div>
+          {statsError && (
+            <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600 ring-1 ring-rose-100">{statsError}</p>
+          )}
         </section>
 
         <section className="grid gap-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100 md:grid-cols-[auto,1fr] md:items-center">
           <div className="md:col-span-2">
             <h3 className="text-2xl font-bold text-slate-900">Resumen gráfico por etiquetas</h3>
-            <p className="text-base text-slate-500">Distribución actual de activos del grupo por categorías.</p>
+            <p className="text-base text-slate-500">Filtro activo: {activeFilterLabel}. El gráfico y tags se actualizan automáticamente.</p>
           </div>
 
-          <div className="grid gap-4 md:col-span-2 md:grid-cols-[auto,1fr] md:items-center">
+          <div className="grid gap-4 md:col-span-2">
             <div
               className="mx-auto grid aspect-square w-[min(240px,70vw)] place-items-center rounded-full"
               style={{
@@ -215,31 +299,29 @@ export default function Dashboard() {
               }}
             >
               <div className="flex aspect-square w-[62%] flex-col items-center justify-center rounded-full border border-slate-200 bg-white">
-                <span className="text-sm text-slate-500">Total</span>
-                <strong className="text-5xl font-black text-slate-900">{totalAssets}</strong>
+                <span className="text-sm text-slate-500">{activeFilterLabel}</span>
+                <strong className="text-5xl font-black text-slate-900">{filteredAssets.length}</strong>
               </div>
             </div>
 
-            <div className="grid gap-2">
-              {tagSummary.map((item) => {
-                const percentage = ((item.count / totalAssets) * 100).toFixed(1);
-                return (
-                  <div
+            {isStatsLoading ? (
+              <p className="text-center text-sm text-slate-500">Cargando resumen...</p>
+            ) : tagSummary.length === 0 ? (
+              <p className="text-center text-sm text-slate-500">No hay tags para el filtro seleccionado.</p>
+            ) : (
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
+                {tagSummary.map((item) => (
+                  <span
                     key={item.tag}
-                    className="flex items-center justify-between gap-3 rounded-2xl bg-slate-50 px-3 py-3 ring-1 ring-slate-100"
+                    className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-3 py-1.5 text-sm font-medium text-slate-700 ring-1 ring-slate-200"
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }}></span>
-                      <span className="font-semibold text-slate-800">{item.tag}</span>
-                    </div>
-                    <div className="flex items-baseline gap-2 text-slate-500">
-                      <strong className="text-slate-900">{item.count}</strong>
-                      <span>{percentage}%</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: item.color }}></span>
+                    {item.tag}
+                    <strong className="text-slate-900">{item.count}</strong>
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </section>
 
