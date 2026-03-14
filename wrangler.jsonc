@@ -19,5 +19,10 @@
       "database_name": "tuna-inventory-db",
       "database_id": "b1ee47a3-35cc-4747-a0ef-563e94702924"
     }
-  ]
+  ],
+  "vars": {
+    "AWS_REGION": "us-east-2",
+    "AWS_S3_BUCKET": "tuna-inventory-manager-tfciff-arequipa-peru-tconan",
+    "AWS_S3_PUBLIC_BASE_URL": "https://tuna-inventory-manager-tfciff-arequipa-peru-tconan.s3.us-east-2.amazonaws.com"
+  }
 }
