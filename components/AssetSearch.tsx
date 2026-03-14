@@ -52,13 +52,13 @@ export default function AssetSearch() {
   return (
     <section className="asset-panel glass">
       <h3>Consultar activos</h3>
-      <p className="placeholder-text">Busca por nombre, tipo, estado o etiqueta.</p>
+      <p className="placeholder-text">Busca por código, tipo, estado o etiqueta.</p>
 
       <form className="asset-form" onSubmit={search}>
         <div className="asset-form-grid">
           <div>
             <label className="input-label">Búsqueda</label>
-            <input className="input-text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nombre o descripción" />
+            <input className="input-text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Código o descripción" />
           </div>
 
           <div>

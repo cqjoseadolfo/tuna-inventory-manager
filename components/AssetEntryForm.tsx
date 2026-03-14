@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme";
-
 interface Props {
   createdByEmail: string;
 }
@@ -11,7 +10,6 @@ interface Props {
 interface FormState {
   assetType: AssetType;
   assetCode: string;
-  photoUrl: string;
   instrumentType: string;
   brand: string;
   fabricationYear: string;
@@ -28,7 +26,6 @@ interface FormState {
 const initialState: FormState = {
   assetType: "instrumento",
   assetCode: "",
-  photoUrl: "",
   instrumentType: "",
   brand: "",
   fabricationYear: "",
@@ -45,8 +42,8 @@ const initialState: FormState = {
 export default function AssetEntryForm({ createdByEmail }: Props) {
   const [form, setForm] = useState<FormState>(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<string>("");
-  const [error, setError] = useState<string>("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [photoName, setPhotoName] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
@@ -71,7 +68,7 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const handlePhotoChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -84,7 +81,6 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     setPhotoName(file.name);
     setPhotoFile(file);
     setPreviewUrl(URL.createObjectURL(file));
-    update("photoUrl", "");
   };
 
   const submit = async (e: React.FormEvent) => {
@@ -92,14 +88,24 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
     setError("");
     setMessage("");
 
-    if (!form.assetCode.trim()) return setError("Ingresa el código o número de rotulación.");
-    if (!photoFile) return setError("Toma o selecciona una foto principal del activo.");
+    if (!form.assetCode.trim()) {
+      setError("Ingresa el código o número de rotulación.");
+      return;
+    }
+
+    if (!photoFile) {
+      setError("Toma o selecciona una foto principal del activo.");
+      return;
+    }
 
     if (form.assetType === "instrumento" && (!form.instrumentType.trim() || !form.brand.trim())) {
-      return setError("Para instrumento se requiere tipo de instrumento y marca.");
+      setError("Para instrumento se requiere tipo de instrumento y marca.");
+      return;
     }
+
     if (form.assetType === "reconocimiento" && !form.issuer.trim()) {
-      return setError("Para reconocimiento se requiere el emisor.");
+      setError("Para reconocimiento se requiere el emisor.");
+      return;
     }
 
     try {
@@ -181,110 +187,133 @@ export default function AssetEntryForm({ createdByEmail }: Props) {
   return (
     <section className="asset-panel glass">
       <h3>Registrar activo</h3>
-      <p className="placeholder-text">Formulario dinámico por tipo de activo.</p>
+      <p className="placeholder-text">Primero registra la foto principal y luego completa los datos base del activo.</p>
 
       <form className="asset-form" onSubmit={submit}>
-        <div className="asset-form-grid">
-          <div>
-            <label className="input-label">Tipo de activo</label>
-            <select className="input-text" value={form.assetType} onChange={(e) => update("assetType", e.target.value as AssetType)}>
-              <option value="instrumento">Instrumento</option>
-              <option value="reconocimiento">Reconocimiento</option>
-              <option value="uniforme">Uniforme</option>
-            </select>
+        <div className="asset-block">
+          <div className="asset-block-header">
+            <h4>Foto principal</h4>
+            <p className="placeholder-text">Puedes tomar la foto desde la cámara o seleccionar una imagen de tu dispositivo.</p>
           </div>
 
-          <div>
-            <label className="input-label">Código / N° de rotulación</label>
-            <input className="input-text" value={form.assetCode} onChange={(e) => update("assetCode", e.target.value)} placeholder="Ej. TUNA-INS-001" />
-          </div>
-
-          <div className="field-full">
-            <label className="input-label">Foto principal</label>
-            <label className="photo-picker">
-              <input
-                className="photo-input"
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={handlePhotoChange}
-              />
-              {previewUrl ? (
-                <div className="photo-preview-wrap">
-                  <img src={previewUrl} alt="Vista previa del activo" className="photo-preview" />
-                  <span className="helper-text">{photoName || "Foto cargada"}</span>
-                </div>
-              ) : (
-                <div className="photo-placeholder">
-                  <span className="photo-placeholder-icon">📷</span>
-                  <strong>Tomar o seleccionar foto</strong>
-                  <span className="helper-text">Desde la cámara o galería del dispositivo</span>
-                </div>
-              )}
-            </label>
+          <div className="asset-form-grid">
+            <div className="field-full">
+              <label className="input-label">Foto principal</label>
+              <label className="photo-picker">
+                <input
+                  className="photo-input"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  onChange={handlePhotoChange}
+                />
+                {previewUrl ? (
+                  <div className="photo-preview-wrap">
+                    <img src={previewUrl} alt="Vista previa del activo" className="photo-preview" />
+                    <span className="helper-text">{photoName || "Foto cargada"}</span>
+                  </div>
+                ) : (
+                  <div className="photo-placeholder">
+                    <span className="photo-placeholder-icon">📷</span>
+                    <strong>Tomar o seleccionar foto</strong>
+                    <span className="helper-text">Desde la cámara o galería del dispositivo</span>
+                  </div>
+                )}
+              </label>
+            </div>
           </div>
         </div>
 
-        {form.assetType === "instrumento" && (
-          <div className="subtype-box">
-            <h4>Datos de instrumento</h4>
-            <div className="asset-form-grid">
-              <div>
-                <label className="input-label">Instrumento</label>
-                <input className="input-text" value={form.instrumentType} onChange={(e) => update("instrumentType", e.target.value)} placeholder="Guitarra" />
-              </div>
-              <div>
-                <label className="input-label">Marca</label>
-                <input className="input-text" value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
-              </div>
-              <div>
-                <label className="input-label">Año de fabricación</label>
-                <input className="input-text" type="number" min="1800" max="2100" value={form.fabricationYear} onChange={(e) => update("fabricationYear", e.target.value)} />
-              </div>
-            </div>
+        <div className="asset-block">
+          <div className="asset-block-header">
+            <h4>Datos base</h4>
+            <p className="placeholder-text">Información mínima necesaria para identificar el activo en el inventario.</p>
           </div>
-        )}
 
-        {form.assetType === "reconocimiento" && (
-          <div className="subtype-box">
-            <h4>Datos de reconocimiento</h4>
-            <div className="asset-form-grid">
-              <div>
-                <label className="input-label">Emisor</label>
-                <input className="input-text" value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." />
-              </div>
-              <div>
-                <label className="input-label">Fecha de emisión</label>
-                <input className="input-text" type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
-              </div>
-              <div>
-                <label className="input-label">Tipo de documento</label>
-                <input className="input-text" value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" />
-              </div>
-              <div>
-                <label className="input-label">Código de referencia</label>
-                <input className="input-text" value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" />
-              </div>
+          <div className="asset-form-grid">
+            <div>
+              <label className="input-label">Tipo de activo</label>
+              <select className="input-text" value={form.assetType} onChange={(e) => update("assetType", e.target.value as AssetType)}>
+                <option value="instrumento">Instrumento</option>
+                <option value="reconocimiento">Reconocimiento</option>
+                <option value="uniforme">Uniforme</option>
+              </select>
             </div>
-          </div>
-        )}
 
-        {form.assetType === "uniforme" && (
-          <div className="subtype-box">
-            <h4>Datos de uniforme</h4>
-            <div className="asset-form-grid">
-              <div>
-                <label className="input-label">Talla</label>
-                <input className="input-text" value={form.size} onChange={(e) => update("size", e.target.value)} placeholder="M" />
-              </div>
-              <div className="checkbox-group field-full">
-                <label><input type="checkbox" checked={form.hasCinta} onChange={(e) => update("hasCinta", e.target.checked)} /> Cinta</label>
-                <label><input type="checkbox" checked={form.hasJubon} onChange={(e) => update("hasJubon", e.target.checked)} /> Jubón</label>
-                <label><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
-              </div>
+            <div>
+              <label className="input-label">Código / N° de rotulación</label>
+              <input className="input-text" value={form.assetCode} onChange={(e) => update("assetCode", e.target.value)} placeholder="Ej. TUNA-INS-001" />
             </div>
           </div>
-        )}
+        </div>
+
+        <div className="asset-block additional-block">
+          <div className="asset-block-header">
+            <h4>Información adicional importante</h4>
+            <p className="placeholder-text">Campos específicos del tipo de activo seleccionado.</p>
+          </div>
+
+          {form.assetType === "instrumento" && (
+            <div className="subtype-box">
+              <h4>Datos de instrumento</h4>
+              <div className="asset-form-grid">
+                <div>
+                  <label className="input-label">Instrumento</label>
+                  <input className="input-text" value={form.instrumentType} onChange={(e) => update("instrumentType", e.target.value)} placeholder="Guitarra" />
+                </div>
+                <div>
+                  <label className="input-label">Marca</label>
+                  <input className="input-text" value={form.brand} onChange={(e) => update("brand", e.target.value)} placeholder="Alhambra" />
+                </div>
+                <div>
+                  <label className="input-label">Año de fabricación</label>
+                  <input className="input-text" type="number" min="1800" max="2100" value={form.fabricationYear} onChange={(e) => update("fabricationYear", e.target.value)} />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {form.assetType === "reconocimiento" && (
+            <div className="subtype-box">
+              <h4>Datos de reconocimiento</h4>
+              <div className="asset-form-grid">
+                <div>
+                  <label className="input-label">Emisor</label>
+                  <input className="input-text" value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." />
+                </div>
+                <div>
+                  <label className="input-label">Fecha de emisión</label>
+                  <input className="input-text" type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} />
+                </div>
+                <div>
+                  <label className="input-label">Tipo de documento</label>
+                  <input className="input-text" value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" />
+                </div>
+                <div>
+                  <label className="input-label">Código de referencia</label>
+                  <input className="input-text" value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {form.assetType === "uniforme" && (
+            <div className="subtype-box">
+              <h4>Datos de uniforme</h4>
+              <div className="asset-form-grid">
+                <div>
+                  <label className="input-label">Talla</label>
+                  <input className="input-text" value={form.size} onChange={(e) => update("size", e.target.value)} placeholder="M" />
+                </div>
+                <div className="checkbox-group field-full">
+                  <label><input type="checkbox" checked={form.hasCinta} onChange={(e) => update("hasCinta", e.target.checked)} /> Cinta</label>
+                  <label><input type="checkbox" checked={form.hasJubon} onChange={(e) => update("hasJubon", e.target.checked)} /> Jubón</label>
+                  <label><input type="checkbox" checked={form.hasGreguesco} onChange={(e) => update("hasGreguesco", e.target.checked)} /> Gregüesco</label>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
 
         {error && <p className="error-text">{error}</p>}
         {message && <p className="success-text">{message}</p>}

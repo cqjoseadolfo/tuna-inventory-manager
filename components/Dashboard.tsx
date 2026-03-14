@@ -1,13 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "../app/context/AuthContext";
-import AssetEntryForm from "./AssetEntryForm";
-import AssetSearch from "./AssetSearch";
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
-  const [activeView, setActiveView] = useState<"none" | "register" | "consult">("none");
 
   if (!user) return null;
 
@@ -55,29 +52,25 @@ export default function Dashboard() {
           <p className="placeholder-text">Elige una acción para comenzar a gestionar los activos.</p>
 
           <div className="action-grid">
-            <button
+            <Link
+              href="/assets/new"
               className="action-card glass"
-              onClick={() => setActiveView("register")}
             >
               <span className="action-icon">➕</span>
               <h3>Registrar un activo</h3>
               <p>Crear una nueva ficha de instrumento o recurso del inventario.</p>
-            </button>
+            </Link>
 
-            <button
+            <Link
+              href="/assets/search"
               className="action-card glass"
-              onClick={() => setActiveView("consult")}
             >
               <span className="action-icon">🔎</span>
               <h3>Consultar por un activo</h3>
-              <p>Buscar por nombre, código o estado para ver su detalle.</p>
-            </button>
+              <p>Buscar por código, tipo, estado o etiquetas para ver su detalle.</p>
+            </Link>
           </div>
         </section>
-
-        {activeView === "register" && <AssetEntryForm createdByEmail={user.email} />}
-
-        {activeView === "consult" && <AssetSearch />}
 
         <section className="data-section">
           <div className="dashboard-grid">
