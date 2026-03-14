@@ -127,14 +127,20 @@ export default function Dashboard() {
               href="/assets/new"
               className="action-card glass action-card-primary"
             >
-              <h3>Registrar activo</h3>
+              <div className="action-title-wrap">
+                <span className="action-icon">➕</span>
+                <h3>Registrar activo</h3>
+              </div>
             </Link>
 
             <Link
               href="/assets/search"
               className="action-card glass action-card-secondary"
             >
-              <h3>Consultar activo</h3>
+              <div className="action-title-wrap">
+                <span className="action-icon">🔎</span>
+                <h3>Consultar activo</h3>
+              </div>
             </Link>
           </div>
         </section>
