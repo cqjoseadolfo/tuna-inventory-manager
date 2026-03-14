@@ -21,6 +21,9 @@ interface Env {
   OPENAI_API_KEY?: string;
   OPENAI_BASE_URL?: string;
   OPENAI_MODEL?: string;
+  AI_PROVIDER?: string;
+  GEMINI_API_KEY?: string;
+  GEMINI_MODEL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -58,6 +61,9 @@ export default {
     (globalThis as any).OPENAI_API_KEY = env.OPENAI_API_KEY;
     (globalThis as any).OPENAI_BASE_URL = env.OPENAI_BASE_URL;
     (globalThis as any).OPENAI_MODEL = env.OPENAI_MODEL;
+    (globalThis as any).AI_PROVIDER = env.AI_PROVIDER;
+    (globalThis as any).GEMINI_API_KEY = env.GEMINI_API_KEY;
+    (globalThis as any).GEMINI_MODEL = env.GEMINI_MODEL;
 
     // Image optimization via Cloudflare Images binding.
     // The parseImageParams validation inside handleImageOptimization

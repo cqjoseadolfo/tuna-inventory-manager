@@ -6,10 +6,19 @@ type SuggestedAssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro"
 
 type AiSuggestion = {
   assetType?: SuggestedAssetType;
-  notes?: string;
+  notes?: string | null;
   instrumentType?: string | null;
   issueDate?: string | null;
   tags?: string[];
+};
+
+const toBase64 = (bytes: Uint8Array) => {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + chunkSize)));
+  }
+  return btoa(binary);
 };
 
 const extractJsonObject = (text: string): AiSuggestion | null => {
@@ -60,21 +69,25 @@ export async function POST(request: Request) {
     const processEnv = ((globalThis as any).process?.env || {}) as Record<string, string | undefined>;
     const getEnv = (key: string) => runtimeEnv[key] || (globalThis as any)[key] || processEnv[key] || undefined;
 
+    const aiProvider = (getEnv("AI_PROVIDER") || "").toLowerCase();
+    const geminiApiKey = getEnv("GEMINI_API_KEY");
+    const geminiModel = getEnv("GEMINI_MODEL") || "gemini-1.5-flash";
+
     const openAiKey = getEnv("OPENAI_API_KEY");
     const openAiBaseUrl = getEnv("OPENAI_BASE_URL") || "https://api.openai.com/v1";
     const openAiModel = getEnv("OPENAI_MODEL") || "gpt-4.1-mini";
 
-    if (!openAiKey) {
+    if (!geminiApiKey && !openAiKey) {
       return NextResponse.json(
         {
-          error: "Falta OPENAI_API_KEY en el runtime del Worker",
+          error: "Falta GEMINI_API_KEY u OPENAI_API_KEY en el runtime del Worker",
         },
         { status: 500 }
       );
     }
 
     const imageBytes = await file.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(imageBytes)));
+    const base64 = toBase64(new Uint8Array(imageBytes));
     const dataUrl = `data:${file.type};base64,${base64}`;
 
     const prompt = `Analiza la imagen de un activo de inventario musical y responde SOLO JSON valido con esta estructura:
@@ -92,34 +105,77 @@ Reglas:
 - Incluye tags de colores visibles, material (madera, metal, plastico, tela), y clasificacion musical (cuerdas, vientos, percusion) cuando aplique.
 - No agregues texto fuera del JSON.`;
 
-    const response = await fetch(`${openAiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${openAiKey}`,
-      },
-      body: JSON.stringify({
-        model: openAiModel,
-        temperature: 0.2,
-        messages: [
-          {
-            role: "user",
-            content: [
-              { type: "text", text: prompt },
-              { type: "image_url", image_url: { url: dataUrl } },
-            ],
-          },
-        ],
-      }),
-    });
+    let rawText = "";
 
-    const data = await response.json();
-    if (!response.ok) {
-      const message = data?.error?.message || "No se pudo analizar la imagen con IA";
-      return NextResponse.json({ error: message }, { status: 500 });
+    const shouldUseGemini = aiProvider === "gemini" || (!!geminiApiKey && aiProvider !== "openai");
+
+    if (shouldUseGemini && geminiApiKey) {
+      const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent?key=${encodeURIComponent(geminiApiKey)}`;
+
+      const geminiResponse = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          generationConfig: {
+            temperature: 0.2,
+          },
+          contents: [
+            {
+              role: "user",
+              parts: [
+                { text: prompt },
+                {
+                  inlineData: {
+                    mimeType: file.type,
+                    data: base64,
+                  },
+                },
+              ],
+            },
+          ],
+        }),
+      });
+
+      const geminiData = await geminiResponse.json();
+      if (!geminiResponse.ok) {
+        const message = geminiData?.error?.message || "No se pudo analizar la imagen con Gemini";
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
+
+      rawText = geminiData?.candidates?.[0]?.content?.parts?.map((p: any) => p?.text || "").join("\n") || "";
+    } else {
+      const response = await fetch(`${openAiBaseUrl.replace(/\/$/, "")}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${openAiKey}`,
+        },
+        body: JSON.stringify({
+          model: openAiModel,
+          temperature: 0.2,
+          messages: [
+            {
+              role: "user",
+              content: [
+                { type: "text", text: prompt },
+                { type: "image_url", image_url: { url: dataUrl } },
+              ],
+            },
+          ],
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        const message = data?.error?.message || "No se pudo analizar la imagen con IA";
+        return NextResponse.json({ error: message }, { status: 500 });
+      }
+
+      rawText = data?.choices?.[0]?.message?.content || "";
     }
 
-    const rawText = data?.choices?.[0]?.message?.content || "";
     const parsed = extractJsonObject(rawText);
 
     if (!parsed) {
