@@ -235,13 +235,13 @@ export default function Dashboard() {
         </section>
 
         <section>
-          <article className="relative min-h-[180px] overflow-visible rounded-[2rem] bg-[#0b1338] py-6 pl-6 pr-[150px] text-white shadow-[0_18px_30px_rgba(15,23,42,0.20)]">
+          <article className="relative min-h-[180px] overflow-visible rounded-[2rem] bg-[#0b1338] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(15,23,42,0.20)]">
             <div className="flex h-full flex-col justify-between gap-3">
               <div>
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lime-300">Newsletter</p>
                 <h3 className="mt-2 text-[48px] font-black leading-[0.95]">Plan 2026</h3>
               </div>
-              <p className="text-[18px] leading-[1.25] text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
+              <p className="pr-[150px] text-[18px] leading-[1.25] text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
             </div>
 
             {!planImageBroken ? (
