@@ -36,12 +36,20 @@ interface SavedAsset {
   notes: string;
   holderName: string;
   tags: string[];
+  fabricationYear?: string;
+  // instrumento
   instrumentType?: string;
   brand?: string;
+  // reconocimiento
   issuer?: string;
   issueDate?: string;
-  fabricationYear?: string;
+  documentType?: string;
+  referenceCode?: string;
+  // uniforme
   size?: string;
+  hasCinta?: boolean;
+  hasJubon?: boolean;
+  hasGreguesco?: boolean;
 }
 
 const initialState: FormState = {
@@ -222,12 +230,17 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
         notes: form.notes.trim(),
         holderName: data.holderName || createdByLabel,
         tags: normalizedTags,
+        fabricationYear: form.fabricationYear || undefined,
         instrumentType: form.instrumentType || undefined,
         brand: form.brand || undefined,
         issuer: form.issuer || undefined,
         issueDate: form.issueDate || undefined,
-        fabricationYear: form.fabricationYear || undefined,
+        documentType: form.documentType || undefined,
+        referenceCode: form.referenceCode || undefined,
         size: form.size || undefined,
+        hasCinta: form.hasCinta || undefined,
+        hasJubon: form.hasJubon || undefined,
+        hasGreguesco: form.hasGreguesco || undefined,
       });
 
       // Reset form
@@ -283,20 +296,14 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
 
             {/* Details grid */}
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Estado</dt>
-                <dd className="mt-0.5 font-semibold text-slate-700">Bajo responsabilidad</dd>
-              </div>
-              <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Responsable</dt>
-                <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.holderName}</dd>
-              </div>
               {savedAsset.fabricationYear && (
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Año</dt>
                   <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.fabricationYear}</dd>
                 </div>
               )}
+
+              {/* Instrumento */}
               {savedAsset.instrumentType && (
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Instrumento</dt>
@@ -309,24 +316,57 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                   <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.brand}</dd>
                 </div>
               )}
+
+              {/* Reconocimiento */}
               {savedAsset.issuer && (
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Emisor</dt>
                   <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.issuer}</dd>
                 </div>
               )}
+              {savedAsset.issueDate && (
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Fecha de emisión</dt>
+                  <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.issueDate}</dd>
+                </div>
+              )}
+              {savedAsset.documentType && (
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Tipo de documento</dt>
+                  <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.documentType}</dd>
+                </div>
+              )}
+              {savedAsset.referenceCode && (
+                <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                  <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Código de referencia</dt>
+                  <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.referenceCode}</dd>
+                </div>
+              )}
+
+              {/* Uniforme */}
               {savedAsset.size && (
                 <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Talla</dt>
                   <dd className="mt-0.5 font-semibold text-slate-700">{savedAsset.size}</dd>
                 </div>
               )}
+              {(savedAsset.hasCinta || savedAsset.hasJubon || savedAsset.hasGreguesco) && (
+                <div className="col-span-2 flex flex-wrap gap-2">
+                  {savedAsset.hasCinta && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">Cinta</span>}
+                  {savedAsset.hasJubon && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">Jubón</span>}
+                  {savedAsset.hasGreguesco && <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600 ring-1 ring-slate-200">Gregüesco</span>}
+                </div>
+              )}
+
+              {/* Notas */}
               {savedAsset.notes && (
                 <div className="col-span-2 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                   <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Notas</dt>
                   <dd className="mt-0.5 text-slate-700">{savedAsset.notes}</dd>
                 </div>
               )}
+
+              {/* Tags */}
               {savedAsset.tags.length > 0 && (
                 <div className="col-span-2 flex flex-wrap gap-2">
                   {savedAsset.tags.map((tag) => (
