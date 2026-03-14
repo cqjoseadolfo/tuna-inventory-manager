@@ -15,17 +15,39 @@ export default function Dashboard() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
+      if (!isMenuOpen) return;
       if (!menuRef.current) return;
       if (!menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
     };
 
+    const handleEsc = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    };
+
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
     };
-  }, []);
+  }, [isMenuOpen]);
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    if (isMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = previousOverflow || "";
+    }
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [isMenuOpen]);
 
   const tagSummary = [
     { tag: "#instrumentos", count: 14, color: "#60a5fa" },
@@ -50,52 +72,51 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
-      <header className="dashboard-header home-header glass">
-        <div className="greeting-area">
-          <p className="greeting-text">Hola, {displayName} 👋</p>
-          <p className="muted-text">¿Qué deseas gestionar hoy?</p>
-        </div>
-        <div className="header-actions" ref={menuRef}>
-          <button
-            type="button"
-            className="hamburger-btn"
-            aria-label="Abrir menú"
-            aria-expanded={isMenuOpen}
-            onClick={() => setIsMenuOpen((prev) => !prev)}
-          >
-            ☰
-          </button>
+      <button
+        type="button"
+        className="hamburger-btn floating-menu-trigger"
+        aria-label="Abrir menú"
+        aria-expanded={isMenuOpen}
+        onClick={() => setIsMenuOpen((prev) => !prev)}
+      >
+        ☰
+      </button>
 
-          {isMenuOpen && (
-            <div className="menu-panel glass" role="menu" aria-label="Menú principal">
-              <div className="menu-profile-block">
-                <img src={user.picture} alt="Avatar" className="avatar-small" />
-                <div className="user-details">
-                  <span className="user-name">{user.name}</span>
-                  <span className="user-email">{user.email}</span>
-                </div>
-              </div>
+      {isMenuOpen && <div className="menu-overlay" aria-hidden="true"></div>}
 
-              <Link href="/profile" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
-                Perfil
-              </Link>
-              <Link href="/settings" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
-                Configuraciones
-              </Link>
-              <button
-                className="menu-link menu-danger"
-                role="menuitem"
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  logout();
-                }}
-              >
-                Salir
-              </button>
+      <div className="menu-panel-drawer" ref={menuRef} aria-hidden={!isMenuOpen}>
+        <aside className={`menu-panel glass ${isMenuOpen ? "menu-panel-open" : ""}`} role="menu" aria-label="Menú principal">
+          <div className="menu-profile-block">
+            <img src={user.picture} alt="Avatar" className="avatar-small" />
+            <div className="user-details">
+              <span className="user-name">{user.name}</span>
+              <span className="user-email">{user.email}</span>
             </div>
-          )}
-        </div>
-      </header>
+          </div>
+
+          <Link href="/profile" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+            Perfil
+          </Link>
+          <Link href="/settings" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+            Configuraciones
+          </Link>
+          <button
+            className="menu-link menu-danger"
+            role="menuitem"
+            onClick={() => {
+              setIsMenuOpen(false);
+              logout();
+            }}
+          >
+            Salir
+          </button>
+        </aside>
+      </div>
+
+      <section className="dashboard-intro">
+        <p className="greeting-text">Hola, {displayName} 👋</p>
+        <p className="muted-text">¿Qué deseas gestionar hoy?</p>
+      </section>
       
       <main className="dashboard-content">
         <section className="actions-section">

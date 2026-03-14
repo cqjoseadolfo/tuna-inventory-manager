@@ -196,6 +196,11 @@ body {
     position: relative;
 }
 
+.dashboard-intro {
+    margin: 0.15rem 0 0.35rem;
+    padding-right: 3.5rem;
+}
+
 .greeting-area {
     min-width: 0;
 }
@@ -210,6 +215,13 @@ body {
 .header-actions {
     position: relative;
     flex-shrink: 0;
+}
+
+.floating-menu-trigger {
+    position: fixed;
+    top: 0.9rem;
+    right: 0.9rem;
+    z-index: 80;
 }
 
 .hamburger-btn {
@@ -230,16 +242,40 @@ body {
     background: rgba(37, 99, 235, 0.28);
 }
 
+.menu-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: rgba(2, 6, 23, 0.62);
+    backdrop-filter: blur(2px);
+}
+
+.menu-panel-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 70;
+    pointer-events: none;
+}
+
 .menu-panel {
     position: absolute;
-    top: calc(100% + 0.6rem);
+    top: 0;
     right: 0;
-    width: min(86vw, 260px);
+    height: 100dvh;
+    width: min(86vw, 320px);
     border-radius: 0.9rem;
-    padding: 0.8rem;
+    padding: 1rem 0.8rem;
     display: grid;
     gap: 0.45rem;
     z-index: 20;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+    pointer-events: auto;
+    border-radius: 1rem 0 0 1rem;
+}
+
+.menu-panel-open {
+    transform: translateX(0);
 }
 
 .menu-profile-block {
@@ -1173,6 +1209,16 @@ textarea.input-text {
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
+    }
+
+    .floating-menu-trigger {
+        top: 1.3rem;
+        right: 1.6rem;
+    }
+
+    .dashboard-intro {
+        margin-top: 0.5rem;
+        padding-right: 4.2rem;
     }
 
     .page-header {
