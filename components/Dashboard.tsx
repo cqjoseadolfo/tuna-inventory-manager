@@ -241,7 +241,7 @@ export default function Dashboard() {
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lime-300">Newsletter</p>
                 <h3 className="mt-2 text-[48px] font-black leading-[0.95]">Plan 2026</h3>
               </div>
-              <p className="pr-[150px] text-[18px] leading-[1.25] text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
+              <p className="pr-[110px] text-[15px] leading-[1.3] text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
             </div>
 
             {!planImageBroken ? (
