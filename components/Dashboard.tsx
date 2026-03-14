@@ -94,22 +94,24 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <Link href="/profile" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
-            Perfil
-          </Link>
-          <Link href="/settings" className="menu-link" role="menuitem" onClick={() => setIsMenuOpen(false)}>
-            Configuraciones
-          </Link>
-          <button
-            className="menu-link menu-danger"
-            role="menuitem"
-            onClick={() => {
-              setIsMenuOpen(false);
-              logout();
-            }}
-          >
-            Salir
-          </button>
+          <nav className="menu-nav" aria-label="Opciones de navegación">
+            <Link href="/profile" className="menu-nav-item" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+              Perfil
+            </Link>
+            <Link href="/settings" className="menu-nav-item" role="menuitem" onClick={() => setIsMenuOpen(false)}>
+              Configuraciones
+            </Link>
+            <button
+              className="menu-nav-item menu-logout"
+              role="menuitem"
+              onClick={() => {
+                setIsMenuOpen(false);
+                logout();
+              }}
+            >
+              Salir
+            </button>
+          </nav>
         </aside>
       </div>
 
@@ -125,18 +127,14 @@ export default function Dashboard() {
               href="/assets/new"
               className="action-card glass action-card-primary"
             >
-              <span className="action-icon">➕</span>
-              <h3>Registrar un activo</h3>
-              <p>Crear una nueva ficha de instrumento o recurso del inventario.</p>
+              <h3>Registrar activo</h3>
             </Link>
 
             <Link
               href="/assets/search"
               className="action-card glass action-card-secondary"
             >
-              <span className="action-icon">🔎</span>
-              <h3>Consultar por un activo</h3>
-              <p>Buscar por código, tipo, estado o etiquetas para ver su detalle.</p>
+              <h3>Consultar activo</h3>
             </Link>
           </div>
         </section>
