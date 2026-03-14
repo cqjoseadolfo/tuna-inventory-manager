@@ -3,7 +3,7 @@ import { AwsClient } from "aws4fetch";
 
 export const runtime = "edge";
 
-const NEWSLETTER_IMAGE_KEY = "ui/home/newsletter/plan-2026-kid-v1.png";
+const NEWSLETTER_IMAGE_KEY = "ui/home/newsletter/plan-2026-kid-v2.png";
 
 export async function GET() {
   try {

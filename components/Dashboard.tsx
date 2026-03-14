@@ -248,8 +248,8 @@ export default function Dashboard() {
               <img
                 src={plan2026ImageUrl}
                 alt="Plan 2026"
-                className="absolute bottom-0 right-3 h-[200px] w-auto object-contain"
-                style={{ zIndex: 1 }}
+                className="absolute bottom-0 -right-3 h-[200px] w-auto object-contain"
+                style={{ zIndex: 2 }}
                 onError={() => setPlanImageBroken(true)}
               />
             ) : (
