@@ -90,22 +90,31 @@ export async function POST(request: Request) {
     const base64 = toBase64(new Uint8Array(imageBytes));
     const dataUrl = `data:${file.type};base64,${base64}`;
 
-    const prompt = `Analiza la imagen de un activo de inventario musical y responde SOLO JSON valido con esta estructura:
+    const prompt = `Analiza la imagen de un activo de inventario musical perteneciente a una TUNA universitaria española y responde SOLO JSON valido con esta estructura:
 {
   "assetType": "instrumento|reconocimiento|uniforme|otro",
   "notes": "descripcion corta del estado visual: limpio, golpes, rayones, faltantes, deterioro, etc",
-  "instrumentType": "si es instrumento, tipo probable (guitarra, violin, pandereta, etc) o null",
+  "instrumentType": "si es instrumento, tipo probable (bandurria, laud, guitarra, violin, etc) o null",
   "issueDate": "si parece reconocimiento con fecha legible usar YYYY-MM-DD, si no null",
   "tags": ["#color_negro", "#madera", "#instrumento_cuerdas", "#percusion", ...]
 }
 
-Reglas:
-- Si no estas seguro del tipo, usa "otro".
+Contexto: Los usuarios son TUNOS (integrantes de una tuna universitaria española). Sus instrumentos mas frecuentes son la bandurria, el laud y la guitarra clasica.
+
+CRITERIO ESPECIAL — Bandurria vs Bandola:
+Si identificas un instrumento de cuerda pulsada similar a una mandolina o bandola, usa estos criterios visuales para distinguirlo:
+- CAJA (cuerpo): La bandurria tiene la caja mas pequena, plana y con aros (costados) estrechos. La bandola tiende a ser mas voluminosa y con caja mas profunda.
+- MASTIL: La bandurria tiene el mastil muy corto y ancho para acomodar 12 cuerdas con los trastes muy proximos entre si (escala corta). La bandola tiene el mastil ligeramente mas largo y los trastes algo mas espaciados.
+- DECISION: Si el instrumento parece una bandola pero no puedes determinarlo con certeza, PREFIERE clasificarlo como "bandurria" porque en el contexto de una tuna universitaria es considerablemente mas probable que sea una bandurria.
+
+Reglas generales:
+- Si no estas seguro del tipo de activo, usa "otro".
 - Si es uniforme, no inventes datos secundarios; deja instrumentType null e issueDate null.
-- Incluye tags de colores visibles, material (madera, metal, plastico, tela), y clasificacion musical (cuerdas, vientos, percusion) cuando aplique.
+- Incluye tags de colores visibles, material (madera, metal, plastico, tela) y clasificacion musical (cuerdas, vientos, percusion) cuando aplique.
 - No agregues texto fuera del JSON.`;
 
     let rawText = "";
+
 
     const shouldUseGemini = aiProvider === "gemini" || (!!geminiApiKey && aiProvider !== "openai");
 

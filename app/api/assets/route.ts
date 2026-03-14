@@ -5,7 +5,11 @@ export const runtime = "edge";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 
-const generateAssetCode = (assetType: AssetType) => {
+const generateAssetCode = async (
+  db: ReturnType<typeof import("@/app/lib/db").getDbBinding>,
+  assetType: AssetType,
+  fabricationYear?: number | null
+): Promise<string> => {
   const prefixMap: Record<AssetType, string> = {
     instrumento: "INS",
     reconocimiento: "REC",
@@ -13,13 +17,21 @@ const generateAssetCode = (assetType: AssetType) => {
     otro: "OTR",
   };
 
-  const now = new Date();
-  const yyyy = now.getUTCFullYear();
-  const mm = String(now.getUTCMonth() + 1).padStart(2, "0");
-  const dd = String(now.getUTCDate()).padStart(2, "0");
-  const suffix = crypto.randomUUID().slice(0, 6).toUpperCase();
-  return `TUNA-${prefixMap[assetType]}-${yyyy}${mm}${dd}-${suffix}`;
+  const prefix = prefixMap[assetType];
+  const year = fabricationYear || new Date().getUTCFullYear();
+  const yy = String(year).slice(-2); // last 2 digits of the year
+
+  // Count existing codes with same prefix+year to determine correlative
+  const likePattern = `${prefix}-${yy}%`;
+  const row = await db
+    .prepare("SELECT COUNT(*) AS cnt FROM assets WHERE name LIKE ?")
+    .bind(likePattern)
+    .first<{ cnt: number }>();
+  const correlative = String((row?.cnt ?? 0) + 1).padStart(2, "0");
+
+  return `${prefix}-${yy}${correlative}`;
 };
+
 
 export async function GET(request: Request) {
   try {
@@ -204,11 +216,14 @@ export async function POST(request: Request) {
       uniform?: { size?: string | null; hasCinta?: boolean; hasJubon?: boolean; hasGreguesco?: boolean } | null;
     };
 
-    const generatedCode = generateAssetCode(assetType || "otro");
-    const assetIdentifier = String(code || name || generatedCode).trim();
+    const db = getDbBinding();
     const parsedCurrentValue = Number(currentValue ?? 0);
     const rawFabricationYear = fabricationYear ?? null;
     const parsedFabricationYear = rawFabricationYear === null || rawFabricationYear === undefined ? null : Number(rawFabricationYear);
+
+    const generatedCode = await generateAssetCode(db, assetType || "otro", parsedFabricationYear);
+    const assetIdentifier = String(code || name || generatedCode).trim();
+
 
     if (
       !assetType ||
@@ -225,8 +240,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "assetType inválido" }, { status: 400 });
     }
 
-    const db = getDbBinding();
     const assetId = crypto.randomUUID();
+
 
     let createdByUserId: string | null = null;
     let holderDisplayName: string | null = null;
