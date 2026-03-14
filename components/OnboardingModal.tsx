@@ -42,18 +42,18 @@ export default function OnboardingModal() {
   };
 
   return (
-    <div className="onboarding-overlay">
-      <div className="onboarding-modal glass">
-        <div className="onboarding-header">
-          <h2>¡Bienvenido a la Tuna!</h2>
-          <p className="muted-text">
+    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/75 p-4">
+      <div className="w-full max-w-md rounded-2xl border border-slate-400/20 bg-slate-900/85 p-5 shadow-[0_20px_45px_rgba(2,8,25,0.5)] backdrop-blur-xl">
+        <div className="mb-4">
+          <h2 className="text-3xl font-bold text-white">¡Bienvenido a la Tuna!</h2>
+          <p className="mt-1 text-slate-300">
             Hola {user.name.split(' ')[0]}. Para identificarte correctamente en el inventario, por favor ingresa tu "Chapa".
           </p>
         </div>
 
-        <form onSubmit={handleSubmit} className="onboarding-form">
+        <form onSubmit={handleSubmit} className="grid gap-4">
           <div>
-            <label htmlFor="nickname" className="input-label">
+            <label htmlFor="nickname" className="mb-1 block text-sm text-slate-200">
               Tu Chapa
             </label>
             <input
@@ -62,17 +62,17 @@ export default function OnboardingModal() {
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               placeholder="Ej. El Bardo"
-              className="input-text"
+              className="w-full rounded-xl border border-slate-600 bg-slate-950/70 px-3 py-3 text-white outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/30"
               autoFocus
             />
           </div>
 
-          {error && <p className="error-text">{error}</p>}
+          {error && <p className="text-sm text-rose-300">{error}</p>}
 
           <button
             type="submit"
             disabled={isSubmitting}
-            className="btn-primary"
+            className="inline-flex w-full items-center justify-center rounded-full border border-white/20 bg-gradient-to-r from-blue-600 to-blue-500 px-4 py-3 text-base font-semibold text-white transition hover:-translate-y-0.5 hover:shadow-[0_12px_25px_rgba(37,99,235,0.45)] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {isSubmitting ? (
               "Guardando..."

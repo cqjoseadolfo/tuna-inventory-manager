@@ -19,12 +19,15 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
+    "autoprefixer": "^10.4.20",
     "@cloudflare/vite-plugin": "^1.27.0",
     "@types/node": "^20.19.37",
     "@types/react": "^18.3.28",
     "@types/react-dom": "^18.3.7",
     "@vitejs/plugin-rsc": "latest",
+    "postcss": "^8.4.49",
     "react-server-dom-webpack": "^19.2.4",
+    "tailwindcss": "^3.4.17",
     "typescript": "^5.4.5",
     "vinext": "^0.0.29",
     "vite": "^8.0.0",
