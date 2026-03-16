@@ -36,13 +36,14 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           u.has_cinta,
           u.has_jubon,
           u.has_greguesco,
-          GROUP_CONCAT(DISTINCT t.tag) AS tags
+          GROUP_CONCAT(DISTINCT tg.tag) AS tags
         FROM assets a
         LEFT JOIN users usr ON usr.id = a.created_by_user_id
         LEFT JOIN asset_instruments i ON i.asset_id = a.id
         LEFT JOIN asset_recognitions r ON r.asset_id = a.id
         LEFT JOIN asset_uniforms u ON u.asset_id = a.id
-        LEFT JOIN asset_tags t ON t.asset_id = a.id
+        LEFT JOIN asset_tag_map atm ON atm.asset_id = a.id
+        LEFT JOIN tags tg ON tg.id = atm.tag_id
         WHERE a.id = ?
         GROUP BY a.id`
       )

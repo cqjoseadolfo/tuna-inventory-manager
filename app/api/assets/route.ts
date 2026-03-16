@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getDbBinding } from "@/app/lib/db";
+import { getPeruDate, getPeruISOString } from "@/app/lib/time";
 
 export const runtime = "edge";
 
@@ -18,8 +19,16 @@ const generateAssetCode = async (
   };
 
   const prefix = prefixMap[assetType];
-  const year = fabricationYear || new Date().getUTCFullYear();
-  const yy = String(year).slice(-2); // last 2 digits of the year
+
+  // Use fabrication year if provided and valid, otherwise fall back to current Peru year
+  const fullYear =
+    fabricationYear !== null && fabricationYear !== undefined && fabricationYear > 0
+      ? fabricationYear
+      : getPeruDate().getUTCFullYear();
+
+  // Last 2 digits via modulo — unambiguous (e.g. 2026 → 26, 1998 → 98)
+  const yy = String(fullYear % 100).padStart(2, "0");
+
 
   // Count existing codes with same prefix+year to determine correlative
   const likePattern = `${prefix}-${yy}%`;
@@ -64,7 +73,7 @@ export async function GET(request: Request) {
     }
 
     if (tag) {
-      conditions.push("EXISTS (SELECT 1 FROM asset_tags t2 WHERE t2.asset_id = a.id AND LOWER(t2.tag) = ?)");
+      conditions.push("EXISTS (SELECT 1 FROM asset_tag_map atm2 JOIN tags tg2 ON tg2.id = atm2.tag_id WHERE atm2.asset_id = a.id AND LOWER(tg2.tag) = ?)");
       params.push(tag.startsWith("#") ? tag : `#${tag}`);
     }
 
@@ -95,13 +104,14 @@ export async function GET(request: Request) {
         u.has_cinta,
         u.has_jubon,
         u.has_greguesco,
-        GROUP_CONCAT(DISTINCT t.tag) AS tags
+        GROUP_CONCAT(DISTINCT tg.tag) AS tags
       FROM assets a
       LEFT JOIN users usr ON usr.id = a.created_by_user_id
       LEFT JOIN asset_instruments i ON i.asset_id = a.id
       LEFT JOIN asset_recognitions r ON r.asset_id = a.id
       LEFT JOIN asset_uniforms u ON u.asset_id = a.id
-      LEFT JOIN asset_tags t ON t.asset_id = a.id
+      LEFT JOIN asset_tag_map atm ON atm.asset_id = a.id
+      LEFT JOIN tags tg ON tg.id = atm.tag_id
       ${whereClause}
       GROUP BY
         a.id,
@@ -253,8 +263,8 @@ export async function POST(request: Request) {
 
     await db
       .prepare(
-        `INSERT INTO assets (id, asset_type, name, photo_url, fabrication_year, current_value, status, notes, created_by_user_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO assets (id, asset_type, name, photo_url, fabrication_year, current_value, status, notes, created_by_user_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         assetId,
@@ -265,7 +275,8 @@ export async function POST(request: Request) {
         parsedCurrentValue,
         status || "bajo_responsabilidad",
         notes ?? null,
-        createdByUserId
+        createdByUserId,
+        getPeruISOString()          // stored as Peru local time, not UTC
       )
       .run();
 
@@ -320,9 +331,27 @@ export async function POST(request: Request) {
         const tag = String(rawTag || "").trim().toLowerCase();
         if (!tag) continue;
 
+        // 1. Upsert into global tags catalog (INSERT OR IGNORE keeps existing id)
+        const existingTag = await db
+          .prepare("SELECT id FROM tags WHERE tag = ?")
+          .bind(tag)
+          .first<{ id: string }>();
+
+        let tagId: string;
+        if (existingTag?.id) {
+          tagId = existingTag.id;
+        } else {
+          tagId = crypto.randomUUID();
+          await db
+            .prepare("INSERT OR IGNORE INTO tags (id, tag) VALUES (?, ?)")
+            .bind(tagId, tag)
+            .run();
+        }
+
+        // 2. Link tag to this asset (ignore if already linked)
         await db
-          .prepare("INSERT OR IGNORE INTO asset_tags (id, asset_id, tag) VALUES (?, ?, ?)")
-          .bind(crypto.randomUUID(), assetId, tag)
+          .prepare("INSERT OR IGNORE INTO asset_tag_map (asset_id, tag_id) VALUES (?, ?)")
+          .bind(assetId, tagId)
           .run();
       }
     }

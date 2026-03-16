@@ -1,6 +1,8 @@
 # 🎻 Tuna Inventory Manager
 
-Aplicación web para gestionar el inventario de instrumentos de una **Tuna** (agrupación musical universitaria). Construida con **Next.js 14**, desplegada en **Cloudflare Workers** mediante **vinext**, y con autenticación vía **Google OAuth2** sin registro previo.
+Aplicación web para gestionar el inventario de activos de una **Tuna** (agrupación musical universitaria): instrumentos, uniformes, reconocimientos y otros objetos. Construida con **Next.js 14**, desplegada en **Cloudflare Workers** mediante **vinext**, y con autenticación vía **Google OAuth2** sin registro previo.
+
+**Producción:** `tuna-inventory-manager.cq-joseadolfo.workers.dev`
 
 ---
 
@@ -9,12 +11,14 @@ Aplicación web para gestionar el inventario de instrumentos de una **Tuna** (ag
 - [Stack Tecnológico](#stack-tecnológico)
 - [Arquitectura del Proyecto](#arquitectura-del-proyecto)
 - [Flujo de Autenticación](#flujo-de-autenticación)
+- [Gestión de Activos](#gestión-de-activos)
+- [Análisis con IA](#análisis-con-ia)
 - [Base de Datos](#base-de-datos)
+- [Almacenamiento de Fotos](#almacenamiento-de-fotos)
 - [Desarrollo con Docker](#desarrollo-con-docker)
 - [Variables de Entorno](#variables-de-entorno)
 - [Scripts Disponibles](#scripts-disponibles)
 - [Despliegue en Cloudflare](#despliegue-en-cloudflare)
-- [Diseño](#diseño)
 - [Estado del Proyecto](#estado-del-proyecto)
 - [Legacy](#legacy)
 
@@ -28,10 +32,13 @@ Aplicación web para gestionar el inventario de instrumentos de una **Tuna** (ag
 | UI | React 19 + TypeScript 5 |
 | Bundler | Vite 8 + vinext |
 | Plataforma | Cloudflare Workers |
-| Base de Datos | Cloudflare D1 (SQLite) |
-| Imágenes | Cloudflare Images |
+| Base de Datos | Cloudflare D1 (SQLite serverless) |
+| Fotos | AWS S3 o compatible (Cloudflare R2) |
+| Optimización de imágenes | Cloudflare Images binding |
+| IA | Google Gemini o OpenAI (configurable) |
 | Auth | Google Identity Services (OAuth2) |
 | Dev Environment | Docker + Docker Compose |
+| CI/CD | GitHub Actions → Cloudflare Workers |
 
 ---
 
@@ -39,37 +46,58 @@ Aplicación web para gestionar el inventario de instrumentos de una **Tuna** (ag
 
 ```
 tuna-inventory-manager/
-├── app/                        # Next.js App Router
-│   ├── layout.tsx              # Layout raíz: carga Google GSI script + AuthProvider
-│   ├── page.tsx                # Página principal: login o dashboard según sesión
-│   ├── globals.css             # Estilos globales (tema dark + glassmorphism)
+├── app/                          # Next.js App Router
+│   ├── layout.tsx                # Layout raíz: carga Google GSI script + AuthProvider
+│   ├── page.tsx                  # Página principal: login o dashboard según sesión
+│   ├── globals.css               # Estilos globales (tema dark + glassmorphism)
 │   ├── api/
-│   │   └── auth/
-│   │       ├── sync/route.ts       # POST: sincroniza usuario de Google con D1
-│   │       └── onboarding/route.ts # POST: guarda el nickname (Chapa) del usuario
-│   └── context/
-│       └── AuthContext.tsx     # Context global de autenticación (estado de sesión)
+│   │   ├── assets/
+│   │   │   ├── route.ts              # GET lista con filtros / POST crear activo
+│   │   │   ├── [id]/route.ts         # GET detalle de un activo por ID
+│   │   │   ├── ai-analyze/route.ts   # POST análisis de imagen con IA (Gemini / OpenAI)
+│   │   │   └── upload-photo/route.ts # POST subida de foto a S3
+│   │   ├── auth/
+│   │   │   ├── sync/route.ts         # POST sincroniza usuario de Google con D1
+│   │   │   └── onboarding/route.ts   # POST guarda el nickname (Chapa) del usuario
+│   │   └── ui/
+│   │       └── newsletter-image/route.ts  # GET imagen de newsletter de la Tuna
+│   ├── assets/
+│   │   ├── new/page.tsx          # Formulario de registro de nuevo activo
+│   │   ├── [id]/page.tsx         # Vista de detalle de un activo
+│   │   └── search/page.tsx       # Buscador de activos con filtros
+│   ├── profile/page.tsx          # Perfil del usuario (stub)
+│   ├── settings/page.tsx         # Ajustes del sistema (stub)
+│   ├── context/
+│   │   └── AuthContext.tsx       # Context global de autenticación (estado de sesión)
+│   └── lib/
+│       ├── db.ts                 # Helper para obtener el binding D1 en runtime edge
+│       └── time.ts               # Helpers de fecha/hora (zona horaria Perú)
 │
 ├── components/
-│   ├── Dashboard.tsx           # Panel de inventario (con datos mock, en desarrollo)
-│   ├── GoogleAuthButton.tsx    # Botón "Iniciar sesión con Google"
-│   └── OnboardingModal.tsx     # Modal para que usuarios nuevos ingresen su "Chapa"
+│   ├── Dashboard.tsx             # Panel principal: estadísticas y lista de activos
+│   ├── AssetEntryForm.tsx        # Formulario de alta (modo IA + modo manual)
+│   ├── AssetSearch.tsx           # Buscador con filtros por tipo, estado y etiqueta
+│   ├── GoogleAuthButton.tsx      # Botón "Iniciar sesión con Google"
+│   └── OnboardingModal.tsx       # Modal para ingresar la "Chapa" en primer acceso
 │
 ├── worker/
-│   └── index.ts                # Entry point del Cloudflare Worker (imagen + handler)
+│   └── index.ts                  # Entry point del Worker: expone bindings + image optimization
 │
-├── legacy/                     # Prototipo original en Vanilla JS (referencia)
-│   ├── index.html
-│   ├── app.js
-│   └── style.css
+├── docs/
+│   ├── DEVELOPMENT_CONTEXT.md    # Historial de decisiones técnicas y problemas resueltos
+│   └── sql/
+│       ├── 2026-03-14-alter-assets-add-fabrication-year.sql
+│       └── 2026-03-14-normalize-asset-tags.sql
 │
-├── schema.sql                  # Esquema de la base de datos D1
-├── wrangler.jsonc              # Configuración de Cloudflare (bindings D1, ASSETS, IMAGES)
-├── vite.config.ts              # Configuración de Vite con plugins vinext y cloudflare
-├── next.config.mjs             # Config Next.js (inyecta git commit y Google Client ID)
-├── tsconfig.json               # Config TypeScript
-├── Dockerfile                  # Imagen de desarrollo basada en Node 22
-└── docker-compose.yml          # Orquestación: monta el código y expone puerto 3001
+├── legacy/                       # Prototipo original en Vanilla JS (referencia)
+│
+├── schema.sql                    # Esquema base de la base de datos D1
+├── wrangler.jsonc                # Configuración Worker: bindings D1, ASSETS, IMAGES, vars
+├── vite.config.ts                # Vite con plugins vinext y cloudflare
+├── next.config.mjs               # Config Next.js: inyecta git commit y Google Client ID
+├── tsconfig.json                 # Config TypeScript
+├── Dockerfile                    # Imagen de desarrollo basada en Node 22
+└── docker-compose.yml            # Orquestación: monta código y expone puerto 3001
 ```
 
 ---
@@ -106,45 +134,212 @@ La autenticación no requiere registro manual. El flujo completo es:
 
 ---
 
+## 📦 Gestión de Activos
+
+El núcleo funcional de la app. Permite registrar y consultar activos del inventario.
+
+### Tipos de activos
+
+| Tipo | Código | Campos específicos |
+|---|---|---|
+| `instrumento` | `INS` | tipo de instrumento, marca |
+| `reconocimiento` | `REC` | emisor, fecha, tipo de documento, código de referencia |
+| `uniforme` | `UNI` | talla, cinta, jubón, gregüesco |
+| `otro` | `OTR` | — |
+
+### Código de activo
+
+Se genera automáticamente al crear un activo con el formato `{PREFIJO}-{AÑO}{CORRELATIVO}`.
+
+Ejemplos: `INS-2601`, `UNI-2602`, `REC-2601`
+
+El año usa el año de fabricación si se especifica; si no, el año actual (zona horaria Perú).
+
+### Estados disponibles
+
+| Estado | Descripción |
+|---|---|
+| `disponible` | El activo está libre |
+| `bajo_responsabilidad` | Asignado a un miembro |
+| `en_reparacion` | En proceso de reparación |
+| `baja` | Dado de baja del inventario |
+
+### Rutas de la UI
+
+| Ruta | Descripción |
+|---|---|
+| `/` | Dashboard: estadísticas y lista de activos |
+| `/assets/new` | Formulario de registro de nuevo activo |
+| `/assets/[id]` | Detalle completo de un activo |
+| `/assets/search` | Buscador con filtros por código, tipo, estado y etiqueta |
+
+### API de activos
+
+| Endpoint | Método | Descripción |
+|---|---|---|
+| `/api/assets` | `GET` | Lista activos — filtros: `q`, `assetType`, `status`, `tag`, `limit` |
+| `/api/assets` | `POST` | Crea un nuevo activo con sus datos específicos y etiquetas |
+| `/api/assets/[id]` | `GET` | Retorna el detalle completo de un activo |
+| `/api/assets/upload-photo` | `POST` | Sube una foto a S3 y devuelve la URL pública |
+| `/api/assets/ai-analyze` | `POST` | Analiza una imagen con IA y sugiere tipo y metadatos |
+
+### Formulario de registro (`AssetEntryForm`)
+
+El formulario tiene dos modos de entrada:
+- **Modo IA:** se sube una foto y la IA sugiere automáticamente tipo, notas y etiquetas.
+- **Modo manual:** el usuario completa todos los campos directamente.
+
+Las etiquetas se normalizan con prefijo `#` (e.g. `#instrumentos`, `#guitarra`) y se almacenan en las tablas `tags` y `asset_tag_map`.
+
+---
+
+## 🤖 Análisis con IA
+
+El endpoint `POST /api/assets/ai-analyze` acepta una imagen y devuelve sugerencias en JSON:
+
+```json
+{
+  "assetType": "instrumento",
+  "notes": "Guitarra clásica en buen estado",
+  "instrumentType": "guitarra",
+  "issueDate": null,
+  "tags": ["#instrumentos", "#guitarra"]
+}
+```
+
+### Proveedores soportados
+
+El proveedor activo se configura con la variable `AI_PROVIDER` en `wrangler.jsonc`:
+
+| Proveedor | Variables necesarias |
+|---|---|
+| `gemini` (por defecto) | `GEMINI_API_KEY`, `GEMINI_MODEL` |
+| `openai` | `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `OPENAI_MODEL` |
+
+---
+
 ## 🗄️ Base de Datos
 
-Cloudflare D1 (`tuna-inventory-db`). El esquema se encuentra en [schema.sql](schema.sql):
+Cloudflare D1 (`tuna-inventory-db`). Esquema en [schema.sql](schema.sql) + migraciones en [`docs/sql/`](docs/sql/).
+
+### Tablas principales
 
 ```sql
 -- Usuarios registrados vía Google
-CREATE TABLE IF NOT EXISTS users (
+CREATE TABLE users (
     id TEXT PRIMARY KEY,           -- UUID generado en la app
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     picture TEXT,
-    nickname TEXT,                 -- "Chapa" dentro de la Tuna (puede ser null en onboarding)
+    nickname TEXT,                 -- "Chapa" dentro de la Tuna
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
 -- Registro de cada inicio de sesión
-CREATE TABLE IF NOT EXISTS login_logs (
+CREATE TABLE login_logs (
     id TEXT PRIMARY KEY,           -- UUID = sessionId
     user_id TEXT NOT NULL,
     login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+-- Activos del inventario
+CREATE TABLE assets (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,            -- Código auto-generado, e.g. INS-2601
+    asset_type TEXT NOT NULL,      -- instrumento | reconocimiento | uniforme | otro
+    photo_url TEXT,
+    fabrication_year INTEGER,
+    current_value REAL,
+    status TEXT DEFAULT 'disponible',
+    notes TEXT,
+    created_by_user_id TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Datos específicos de instrumentos
+CREATE TABLE asset_instruments (
+    asset_id TEXT PRIMARY KEY,
+    instrument_type TEXT,
+    brand TEXT,
+    FOREIGN KEY (asset_id) REFERENCES assets(id)
+);
+
+-- Datos específicos de reconocimientos / diplomas
+CREATE TABLE asset_recognitions (
+    asset_id TEXT PRIMARY KEY,
+    issuer TEXT,
+    issue_date TEXT,
+    document_type TEXT,
+    reference_code TEXT,
+    FOREIGN KEY (asset_id) REFERENCES assets(id)
+);
+
+-- Datos específicos de uniformes
+CREATE TABLE asset_uniforms (
+    asset_id TEXT PRIMARY KEY,
+    size TEXT,
+    has_cinta INTEGER DEFAULT 0,
+    has_jubon INTEGER DEFAULT 0,
+    has_greguesco INTEGER DEFAULT 0,
+    FOREIGN KEY (asset_id) REFERENCES assets(id)
+);
+
+-- Catálogo global de etiquetas
+CREATE TABLE tags (
+    id TEXT PRIMARY KEY,
+    tag TEXT NOT NULL UNIQUE
+);
+
+-- Relación muchos-a-muchos activos ↔ etiquetas
+CREATE TABLE asset_tag_map (
+    asset_id TEXT NOT NULL,
+    tag_id TEXT NOT NULL,
+    PRIMARY KEY (asset_id, tag_id),
+    FOREIGN KEY (asset_id) REFERENCES assets(id),
+    FOREIGN KEY (tag_id) REFERENCES tags(id)
+);
 ```
 
-Para crear las tablas en D1, ejecuta:
+### Inicializar la DB
 
 ```bash
 npx wrangler d1 execute tuna-inventory-db --file=./schema.sql
 ```
 
-Migración (una sola vez) para mover el año de fabricación a la tabla principal de activos y eliminar columnas legacy:
+### Migraciones aplicadas
 
 ```bash
+# Agrega fabrication_year a assets y elimina columnas legacy
 npx wrangler d1 execute tuna-inventory-db --file=./docs/sql/2026-03-14-alter-assets-add-fabrication-year.sql
+
+# Normaliza etiquetas en tablas tags + asset_tag_map
+npx wrangler d1 execute tuna-inventory-db --file=./docs/sql/2026-03-14-normalize-asset-tags.sql
 ```
 
 ---
 
-## 🐳 Desarrollo con Docker
+## � Almacenamiento de Fotos
+
+Las fotos de activos se suben a un bucket **AWS S3** (o cualquier proveedor compatible como Cloudflare R2) mediante el endpoint `POST /api/assets/upload-photo`.
+
+El archivo se guarda con la ruta: `assets/{tipo}/{timestamp}-{codigo}.{ext}`
+
+La URL pública se construye a partir de `AWS_S3_PUBLIC_BASE_URL` y se guarda en el campo `photo_url` del activo.
+
+### Variables S3 configuradas en `wrangler.jsonc`
+
+| Variable | Valor actual |
+|---|---|
+| `AWS_REGION` | `us-east-2` |
+| `AWS_S3_BUCKET` | `tuna-inventory-manager-tfciff-arequipa-peru-tconan` |
+| `AWS_S3_PUBLIC_BASE_URL` | URL pública del bucket |
+| `AWS_ACCESS_KEY_ID` | (secret en Cloudflare) |
+| `AWS_SECRET_ACCESS_KEY` | (secret en Cloudflare) |
+
+---
+
+## �🐳 Desarrollo con Docker
 
 El entorno de desarrollo está **completamente containerizado**. No es necesario tener Node.js ni ninguna dependencia instalada en Windows de forma local.
 
@@ -176,18 +371,39 @@ docker compose exec app sh
 
 ## ⚙️ Variables de Entorno
 
-| Variable | Descripción | Contexto |
-|---|---|---|
-| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID de la app en Google Cloud Console | Build / Runtime |
-| `DB` | Binding de Cloudflare D1 (inyectado por Wrangler) | Runtime (Worker) |
+### Variables de build / cliente
 
-Para desarrollo local, puedes crear un archivo `.env.local` en la raíz:
+| Variable | Descripción |
+|---|---|
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID de la app en Google Cloud Console |
+| `NEXT_PUBLIC_GIT_COMMIT` | Hash del último commit (generado automáticamente en build) |
+
+### Secrets del Worker (configurados en Cloudflare)
+
+| Variable | Descripción |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | Clave de acceso S3 |
+| `AWS_SECRET_ACCESS_KEY` | Clave secreta S3 |
+| `GEMINI_API_KEY` | API Key de Google Gemini |
+| `OPENAI_API_KEY` | API Key de OpenAI (alternativa a Gemini) |
+
+### Variables públicas del Worker (en `wrangler.jsonc`)
+
+| Variable | Valor |
+|---|---|
+| `AWS_REGION` | `us-east-2` |
+| `AWS_S3_BUCKET` | nombre del bucket |
+| `AWS_S3_PUBLIC_BASE_URL` | URL base pública del bucket |
+| `AI_PROVIDER` | `gemini` (o `openai`) |
+| `GEMINI_MODEL` | `gemini-3.1-flash-lite-preview` |
+| `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
+| `OPENAI_MODEL` | `gpt-4.1-mini` |
+
+Para desarrollo local, crea un archivo `.env.local` en la raíz:
 
 ```env
 NEXT_PUBLIC_GOOGLE_CLIENT_ID=tu-client-id.apps.googleusercontent.com
 ```
-
-> **Nota:** La variable `NEXT_PUBLIC_GIT_COMMIT` se genera automáticamente en build-time a partir del último commit de git (ver [next.config.mjs](next.config.mjs)). Se muestra en el footer de la app.
 
 ---
 
@@ -240,6 +456,7 @@ Los tokens ya están configurados como **secrets del repositorio** en GitHub (`S
 |---|---|
 | `CLOUDFLARE_API_TOKEN` | Token de API de Cloudflare con permisos de Workers y D1 |
 | `CLOUDFLARE_ACCOUNT_ID` | ID de la cuenta de Cloudflare |
+| `NEXT_PUBLIC_GOOGLE_CLIENT_ID` | Client ID de Google OAuth2 (se inyecta en build) |
 
 ### Configuración en `wrangler.jsonc`
 
@@ -263,28 +480,26 @@ npx wrangler d1 execute tuna-inventory-db --file=./schema.sql
 
 ---
 
-## 🎨 Diseño
-
-La interfaz utiliza un tema **dark** con efectos **glassmorphism**:
-
-- Fondo: `#0f172a` (slate-900)
-- Acentos: `#3b82f6` (blue-500)
-- Componentes con fondo semi-transparente y `backdrop-blur`
-- Formas de fondo animadas con gradientes (indigo, pink, sky)
-
----
-
 ## 📝 Estado del Proyecto
 
 | Funcionalidad | Estado |
 |---|---|
-| Autenticación con Google | ✅ Implementado |
-| Onboarding (Chapa) | ✅ Implementado |
-| Persistencia en D1 | ✅ Implementado |
-| Dashboard de inventario | 🚧 En desarrollo (datos mock) |
-| Gestión de instrumentos | ⏳ Pendiente |
-| Registro de préstamos | ⏳ Pendiente |
-| Historial de actividad | ⏳ Pendiente |
+| Autenticación con Google | ✅ Funcionando |
+| Onboarding (Chapa) | ✅ Funcionando |
+| Persistencia de usuarios en D1 | ✅ Funcionando |
+| Registro de logins | ✅ Funcionando |
+| Listar activos con filtros | ✅ Funcionando |
+| Crear activos (instrumentos, uniformes, reconocimientos, otros) | ✅ Funcionando |
+| Ver detalle de activo | ✅ Funcionando |
+| Buscador de activos | ✅ Funcionando |
+| Subir fotos a S3 | ✅ Funcionando |
+| Análisis de imágenes con IA | ✅ Funcionando |
+| Dashboard con estadísticas | ✅ Funcionando |
+| Etiquetas normalizadas | ✅ Funcionando |
+| Página de perfil | 🚧 Stub (en desarrollo) |
+| Página de ajustes | 🚧 Stub (en desarrollo) |
+| Registro de préstamos / devoluciones | ⏳ Pendiente |
+| Historial por activo / miembro | ⏳ Pendiente |
 
 ---
 
