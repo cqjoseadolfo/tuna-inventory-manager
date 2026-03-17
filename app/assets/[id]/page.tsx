@@ -179,6 +179,7 @@ export default function AssetDetailPage() {
       type: "Creacion",
       description: "Activo registrado en el sistema.",
       date: createdAtLabel,
+      sortDate: asset.created_at || "",
     },
     ...((asset.movements || [])
       .filter((movement) => movement.movement_type !== "creacion")
@@ -211,9 +212,10 @@ export default function AssetDetailPage() {
                 minute: "2-digit",
               })
             : "—",
+          sortDate: movement.created_at || "",
         };
       })),
-  ];
+  ].sort((left, right) => new Date(right.sortDate).getTime() - new Date(left.sortDate).getTime());
 
   const handleRequestAsset = async () => {
     if (!user?.email || !asset) return;
