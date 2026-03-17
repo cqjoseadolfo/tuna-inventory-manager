@@ -13,6 +13,9 @@ type AssetItem = {
 
 type AssetRequestItem = {
   id: string;
+  asset_id: string;
+  asset_name?: string;
+  status?: string;
   isUnread?: boolean;
 };
 
@@ -30,6 +33,7 @@ export default function Dashboard() {
   const [activeFilter, setActiveFilter] = useState<DashboardFilter>("all");
   const [incomingRequests, setIncomingRequests] = useState<AssetRequestItem[]>([]);
   const [unreadIncomingCount, setUnreadIncomingCount] = useState(0);
+  const [acceptedNotice, setAcceptedNotice] = useState<AssetRequestItem | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
@@ -100,7 +104,20 @@ export default function Dashboard() {
         throw new Error(data?.error || "No se pudieron cargar las solicitudes.");
       }
       setIncomingRequests(Array.isArray(data?.incoming) ? data.incoming : []);
+      const outgoing = Array.isArray(data?.outgoing) ? data.outgoing : [];
       setUnreadIncomingCount(Number(data?.unreadIncomingCount || 0));
+
+      const acceptedUnread = outgoing
+        .filter((item: any) => item?.status === "aceptada" && item?.isUnread)
+        .sort((left: any, right: any) => {
+          const leftDate = new Date(left?.created_at || 0).getTime();
+          const rightDate = new Date(right?.created_at || 0).getTime();
+          return rightDate - leftDate;
+        });
+
+      if (acceptedUnread.length > 0) {
+        setAcceptedNotice(acceptedUnread[0]);
+      }
     } catch {}
   };
 
@@ -165,6 +182,20 @@ export default function Dashboard() {
     activeFilter === "mine" ? "En posesión" : activeFilter === "requested" ? "Solicitados" : "Activos";
   const hasPendingApproval = unreadIncomingCount > 0 || incomingRequests.length > 0;
 
+  const markRequestRead = async (requestId: string) => {
+    try {
+      await fetch(`/api/asset-requests/${requestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
+      });
+      setAcceptedNotice(null);
+      await loadRequests();
+    } catch {
+      setAcceptedNotice(null);
+    }
+  };
+
   return (
     <div className="relative w-full max-w-xl">
       <button
@@ -183,6 +214,35 @@ export default function Dashboard() {
       </button>
 
       {isMenuOpen && <div className="fixed inset-0 z-40 bg-slate-950/55" aria-hidden="true"></div>}
+
+      {acceptedNotice ? (
+        <div className="fixed inset-0 z-[55] grid place-items-center bg-slate-950/50 px-4" role="dialog" aria-modal="true">
+          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Solicitud aceptada</p>
+            <h3 className="mt-2 text-2xl font-black text-slate-900">🔔 Ya eres responsable del activo</h3>
+            <p className="mt-2 text-sm text-slate-600">
+              Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Puedes editar sus campos ahora.
+            </p>
+
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Link
+                href={`/assets/${acceptedNotice.asset_id}?edit=1`}
+                className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
+                onClick={() => markRequestRead(acceptedNotice.id)}
+              >
+                Editar activo
+              </Link>
+              <button
+                type="button"
+                className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                onClick={() => markRequestRead(acceptedNotice.id)}
+              >
+                Marcar leída
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <div className="pointer-events-none fixed inset-0 z-50" ref={menuRef} aria-hidden={!isMenuOpen}>
         <aside

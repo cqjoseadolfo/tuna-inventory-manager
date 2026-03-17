@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
@@ -60,6 +60,36 @@ interface AssetDetail {
     requester_name: string | null;
     requester_email: string | null;
   } | null;
+  editLogs?: Array<{
+    id: string;
+    field_name: string;
+    old_value: string | null;
+    new_value: string | null;
+    edited_at: string;
+    editor_nickname: string | null;
+    editor_name: string | null;
+    editor_email: string | null;
+  }>;
+}
+
+interface EditFormState {
+  name: string;
+  photoUrl: string;
+  fabricationYear: string;
+  currentValue: string;
+  status: string;
+  notes: string;
+  instrumentType: string;
+  brand: string;
+  issuer: string;
+  issueDate: string;
+  documentType: string;
+  referenceCode: string;
+  size: string;
+  hasCinta: boolean;
+  hasJubon: boolean;
+  hasGreguesco: boolean;
+  tagsInput: string;
 }
 
 const statusLabel: Record<string, string> = {
@@ -96,12 +126,35 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
 
 export default function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [requestFeedback, setRequestFeedback] = useState("");
   const [isRequestSubmitting, setIsRequestSubmitting] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editFeedback, setEditFeedback] = useState("");
+  const [editForm, setEditForm] = useState<EditFormState>({
+    name: "",
+    photoUrl: "",
+    fabricationYear: "",
+    currentValue: "",
+    status: "bajo_responsabilidad",
+    notes: "",
+    instrumentType: "",
+    brand: "",
+    issuer: "",
+    issueDate: "",
+    documentType: "",
+    referenceCode: "",
+    size: "",
+    hasCinta: false,
+    hasJubon: false,
+    hasGreguesco: false,
+    tagsInput: "",
+  });
 
   const loadAsset = async () => {
     if (!id) return;
@@ -120,6 +173,25 @@ export default function AssetDetailPage() {
         throw new Error(data.error || "No se pudo cargar el activo.");
       }
       setAsset(data);
+      setEditForm({
+        name: data.name || "",
+        photoUrl: data.photo_url || "",
+        fabricationYear: data.fabrication_year !== null && data.fabrication_year !== undefined ? String(data.fabrication_year) : "",
+        currentValue: data.current_value !== null && data.current_value !== undefined ? String(data.current_value) : "",
+        status: data.status || "bajo_responsabilidad",
+        notes: data.notes || "",
+        instrumentType: data.instrument_type || "",
+        brand: data.brand || "",
+        issuer: data.issuer || "",
+        issueDate: data.issue_date || "",
+        documentType: data.document_type || "",
+        referenceCode: data.reference_code || "",
+        size: data.size || "",
+        hasCinta: Boolean(data.has_cinta),
+        hasJubon: Boolean(data.has_jubon),
+        hasGreguesco: Boolean(data.has_greguesco),
+        tagsInput: Array.isArray(data.tags) ? data.tags.join(", ") : "",
+      });
     } catch (err: any) {
       setError(err.message || "No se pudo cargar el activo.");
     } finally {
@@ -130,6 +202,12 @@ export default function AssetDetailPage() {
   useEffect(() => {
     loadAsset();
   }, [id, user?.email]);
+
+  useEffect(() => {
+    if (searchParams.get("edit") === "1") {
+      setIsEditModalOpen(true);
+    }
+  }, [searchParams]);
 
   if (isLoading) {
     return (
@@ -191,12 +269,14 @@ export default function AssetDetailPage() {
           traspaso: "Traspaso",
           rechazo: "Rechazo",
           cancelacion: "Cancelación",
+          edicion: "Edición",
         };
         const descriptionMap: Record<string, string> = {
           solicitud: `${toDisplay} solicitó este activo a ${fromDisplay}.`,
           traspaso: `${fromDisplay} cedió este activo a ${toDisplay}.`,
           rechazo: `${fromDisplay} rechazó la solicitud de ${toDisplay}.`,
           cancelacion: `${toDisplay} canceló la solicitud de este activo.`,
+          edicion: `Se editaron campos del activo por ${toDisplay}.`,
         };
 
         return {
@@ -289,6 +369,68 @@ export default function AssetDetailPage() {
     }
   };
 
+  const handleSaveEdit = async () => {
+    if (!asset || !user?.email) return;
+    setIsSavingEdit(true);
+    setEditFeedback("");
+
+    try {
+      const tags = editForm.tagsInput
+        .split(",")
+        .map((item) => String(item || "").trim())
+        .filter(Boolean);
+
+      const payload: any = {
+        actingUserEmail: user.email,
+        name: editForm.name,
+        photoUrl: editForm.photoUrl,
+        fabricationYear: editForm.fabricationYear ? Number(editForm.fabricationYear) : null,
+        currentValue: editForm.currentValue ? Number(editForm.currentValue) : null,
+        status: editForm.status,
+        notes: editForm.notes,
+        tags,
+      };
+
+      if (asset.asset_type === "instrumento") {
+        payload.instrumentType = editForm.instrumentType;
+        payload.brand = editForm.brand;
+      }
+
+      if (asset.asset_type === "reconocimiento") {
+        payload.issuer = editForm.issuer;
+        payload.issueDate = editForm.issueDate;
+        payload.documentType = editForm.documentType;
+        payload.referenceCode = editForm.referenceCode;
+      }
+
+      if (asset.asset_type === "uniforme") {
+        payload.size = editForm.size;
+        payload.hasCinta = editForm.hasCinta;
+        payload.hasJubon = editForm.hasJubon;
+        payload.hasGreguesco = editForm.hasGreguesco;
+      }
+
+      const response = await fetch(`/api/assets/${asset.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json();
+
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "No se pudo guardar la edición.");
+      }
+
+      setEditFeedback(data.updated ? "Cambios guardados correctamente." : "No hubo cambios para guardar.");
+      await loadAsset();
+      setIsEditModalOpen(false);
+    } catch (editError: any) {
+      setEditFeedback(editError?.message || "No se pudo guardar la edición.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
       <section className="w-full max-w-xl space-y-4">
@@ -320,7 +462,18 @@ export default function AssetDetailPage() {
 
         {/* Main data */}
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <h2 className="mb-4 text-lg font-bold text-slate-900">Ficha del activo</h2>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h2 className="text-lg font-bold text-slate-900">Ficha del activo</h2>
+            {isHolder ? (
+              <button
+                type="button"
+                onClick={() => setIsEditModalOpen(true)}
+                className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+              >
+                Editar activo
+              </button>
+            ) : null}
+          </div>
           <dl className="grid grid-cols-2 gap-3">
             <DetailRow label="ID interno" value={asset.id} />
             <DetailRow label="Código" value={asset.name} />
@@ -440,6 +593,7 @@ export default function AssetDetailPage() {
           )}
 
           {requestFeedback ? <p className="mt-3 text-sm text-slate-600">{requestFeedback}</p> : null}
+          {editFeedback ? <p className="mt-2 text-sm text-slate-600">{editFeedback}</p> : null}
         </div>
 
         {/* Tags */}
@@ -475,6 +629,143 @@ export default function AssetDetailPage() {
             </div>
           )}
         </div>
+
+        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+          <h2 className="mb-3 text-lg font-bold text-slate-900">Historial de edición de campos</h2>
+          {Array.isArray(asset.editLogs) && asset.editLogs.length > 0 ? (
+            <ul className="space-y-3">
+              {asset.editLogs.map((logItem) => {
+                const editor = logItem.editor_nickname || logItem.editor_name || logItem.editor_email || "Usuario";
+                const dateLabel = logItem.edited_at
+                  ? new Date(logItem.edited_at).toLocaleString("es-PE", {
+                      year: "numeric",
+                      month: "long",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "—";
+                return (
+                  <li key={logItem.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{logItem.field_name}</p>
+                    <p className="mt-1 text-sm text-slate-700">
+                      <strong>Antes:</strong> {logItem.old_value || "(vacío)"}
+                    </p>
+                    <p className="mt-0.5 text-sm text-slate-700">
+                      <strong>Ahora:</strong> {logItem.new_value || "(vacío)"}
+                    </p>
+                    <p className="mt-1 text-xs text-slate-500">Editado por {editor} · {dateLabel}</p>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+              Aún no hay cambios de campos registrados.
+            </div>
+          )}
+        </div>
+
+        {isEditModalOpen ? (
+          <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/50 px-4" role="dialog" aria-modal="true">
+            <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="text-xl font-black text-slate-900">Editar activo</h3>
+                <button type="button" className="rounded-full p-2 text-slate-500 hover:bg-slate-100" onClick={() => setIsEditModalOpen(false)}>✕</button>
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Código / nombre
+                  <input value={editForm.name} onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  URL de foto
+                  <input value={editForm.photoUrl} onChange={(e) => setEditForm((prev) => ({ ...prev, photoUrl: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Año de fabricación
+                  <input type="number" value={editForm.fabricationYear} onChange={(e) => setEditForm((prev) => ({ ...prev, fabricationYear: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Valor actual
+                  <input type="number" step="0.01" value={editForm.currentValue} onChange={(e) => setEditForm((prev) => ({ ...prev, currentValue: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Estado
+                  <select value={editForm.status} onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2">
+                    <option value="bajo_responsabilidad">Bajo responsabilidad</option>
+                    <option value="disponible">Disponible</option>
+                    <option value="en_reparacion">En reparación</option>
+                    <option value="baja">Baja</option>
+                    <option value="solicitado">Solicitado</option>
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-2">
+                  Notas
+                  <textarea rows={3} value={editForm.notes} onChange={(e) => setEditForm((prev) => ({ ...prev, notes: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-2">
+                  Etiquetas (separadas por coma)
+                  <input value={editForm.tagsInput} onChange={(e) => setEditForm((prev) => ({ ...prev, tagsInput: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                </label>
+
+                {asset.asset_type === "instrumento" ? (
+                  <>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Tipo de instrumento
+                      <input value={editForm.instrumentType} onChange={(e) => setEditForm((prev) => ({ ...prev, instrumentType: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Marca
+                      <input value={editForm.brand} onChange={(e) => setEditForm((prev) => ({ ...prev, brand: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                  </>
+                ) : null}
+
+                {asset.asset_type === "reconocimiento" ? (
+                  <>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Emisor
+                      <input value={editForm.issuer} onChange={(e) => setEditForm((prev) => ({ ...prev, issuer: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Fecha de emisión
+                      <input value={editForm.issueDate} onChange={(e) => setEditForm((prev) => ({ ...prev, issueDate: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Tipo de documento
+                      <input value={editForm.documentType} onChange={(e) => setEditForm((prev) => ({ ...prev, documentType: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Código de referencia
+                      <input value={editForm.referenceCode} onChange={(e) => setEditForm((prev) => ({ ...prev, referenceCode: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                  </>
+                ) : null}
+
+                {asset.asset_type === "uniforme" ? (
+                  <>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-2">
+                      Talla
+                      <input value={editForm.size} onChange={(e) => setEditForm((prev) => ({ ...prev, size: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                    </label>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={editForm.hasCinta} onChange={(e) => setEditForm((prev) => ({ ...prev, hasCinta: e.target.checked }))} /> Tiene cinta</label>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700"><input type="checkbox" checked={editForm.hasJubon} onChange={(e) => setEditForm((prev) => ({ ...prev, hasJubon: e.target.checked }))} /> Tiene jubón</label>
+                    <label className="inline-flex items-center gap-2 text-sm font-medium text-slate-700 md:col-span-2"><input type="checkbox" checked={editForm.hasGreguesco} onChange={(e) => setEditForm((prev) => ({ ...prev, hasGreguesco: e.target.checked }))} /> Tiene gregüesco</label>
+                  </>
+                ) : null}
+              </div>
+
+              <div className="mt-5 flex flex-wrap gap-2">
+                <button type="button" onClick={handleSaveEdit} disabled={isSavingEdit} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:bg-slate-400">
+                  {isSavingEdit ? "Guardando..." : "Guardar cambios"}
+                </button>
+                <button type="button" onClick={() => setIsEditModalOpen(false)} className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
       </section>
     </main>
