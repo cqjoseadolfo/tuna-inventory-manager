@@ -11,6 +11,25 @@ type AssetItem = {
   holderEmail?: string | null;
 };
 
+type AssetRequestItem = {
+  id: string;
+  asset_id: string;
+  asset_name: string;
+  asset_type: string;
+  status: string;
+  isUnread?: boolean;
+  photo_url?: string | null;
+  requester_nickname?: string | null;
+  requester_name?: string | null;
+  requester_email?: string | null;
+  holder_nickname?: string | null;
+  holder_name?: string | null;
+  holder_email?: string | null;
+  holder_read_at?: string | null;
+  requester_read_at?: string | null;
+  created_at: string;
+};
+
 type DashboardFilter = "all" | "mine" | "requested";
 
 const DONUT_COLORS = ["#84cc16", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#3b82f6"];
@@ -23,6 +42,12 @@ export default function Dashboard() {
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState("");
   const [activeFilter, setActiveFilter] = useState<DashboardFilter>("all");
+  const [incomingRequests, setIncomingRequests] = useState<AssetRequestItem[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<AssetRequestItem[]>([]);
+  const [isRequestsLoading, setIsRequestsLoading] = useState(true);
+  const [requestsError, setRequestsError] = useState("");
+  const [unreadIncomingCount, setUnreadIncomingCount] = useState(0);
+  const [unreadOutgoingCount, setUnreadOutgoingCount] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
@@ -66,26 +91,52 @@ export default function Dashboard() {
     };
   }, [isMenuOpen]);
 
-  useEffect(() => {
-    const loadDashboardAssets = async () => {
-      setIsStatsLoading(true);
-      setStatsError("");
-      try {
-        const response = await fetch("/api/assets?limit=100");
-        const data = await response.json();
-        if (!response.ok) {
-          throw new Error(data?.error || "No se pudieron cargar los activos.");
-        }
-        setAssets(Array.isArray(data?.items) ? data.items : []);
-      } catch (error: any) {
-        setStatsError(error?.message || "No se pudieron cargar los datos.");
-      } finally {
-        setIsStatsLoading(false);
+  const loadDashboardAssets = async () => {
+    setIsStatsLoading(true);
+    setStatsError("");
+    try {
+      const response = await fetch("/api/assets?limit=100");
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudieron cargar los activos.");
       }
-    };
+      setAssets(Array.isArray(data?.items) ? data.items : []);
+    } catch (error: any) {
+      setStatsError(error?.message || "No se pudieron cargar los datos.");
+    } finally {
+      setIsStatsLoading(false);
+    }
+  };
 
+  const loadRequests = async () => {
+    if (!user?.email) return;
+
+    setIsRequestsLoading(true);
+    setRequestsError("");
+    try {
+      const response = await fetch(`/api/asset-requests?userEmail=${encodeURIComponent(user.email)}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudieron cargar las solicitudes.");
+      }
+      setIncomingRequests(Array.isArray(data?.incoming) ? data.incoming : []);
+      setOutgoingRequests(Array.isArray(data?.outgoing) ? data.outgoing : []);
+      setUnreadIncomingCount(Number(data?.unreadIncomingCount || 0));
+      setUnreadOutgoingCount(Number(data?.unreadOutgoingCount || 0));
+    } catch (error: any) {
+      setRequestsError(error?.message || "No se pudieron cargar las solicitudes.");
+    } finally {
+      setIsRequestsLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadDashboardAssets();
   }, []);
+
+  useEffect(() => {
+    loadRequests();
+  }, [user?.email]);
 
   const isMine = (item: AssetItem) => {
     const holder = String(item.holderEmail || "").toLowerCase().trim();
@@ -138,6 +189,57 @@ export default function Dashboard() {
 
   const activeFilterLabel =
     activeFilter === "mine" ? "En posesión" : activeFilter === "requested" ? "Solicitados" : "Activos";
+
+  const handleRequestAction = async (requestId: string, action: "accept" | "reject") => {
+    try {
+      const response = await fetch(`/api/asset-requests/${requestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, actingUserEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo procesar la solicitud.");
+      }
+      await Promise.all([loadRequests(), loadDashboardAssets()]);
+    } catch (error: any) {
+      setRequestsError(error?.message || "No se pudo procesar la solicitud.");
+    }
+  };
+
+  const handleRequestMarkRead = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/asset-requests/${requestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo marcar como leída.");
+      }
+      await loadRequests();
+    } catch (error: any) {
+      setRequestsError(error?.message || "No se pudo marcar como leída.");
+    }
+  };
+
+  const handleRequestCancel = async (requestId: string) => {
+    try {
+      const response = await fetch(`/api/asset-requests/${requestId}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", actingUserEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || "No se pudo cancelar la solicitud.");
+      }
+      await Promise.all([loadRequests(), loadDashboardAssets()]);
+    } catch (error: any) {
+      setRequestsError(error?.message || "No se pudo cancelar la solicitud.");
+    }
+  };
 
   return (
     <div className="relative w-full max-w-xl">
@@ -356,8 +458,135 @@ export default function Dashboard() {
         </section>
 
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <h3 className="mb-1 text-xl font-bold text-slate-900">Actividad Reciente</h3>
-          <p className="text-slate-500">El registro de movimientos se mostrará aquí pronto...</p>
+          <h3 className="mb-1 text-xl font-bold text-slate-900">Solicitudes de activos</h3>
+          <p className="text-slate-500">Recibe y responde solicitudes de traspaso de activos.</p>
+
+          {requestsError ? (
+            <p className="mt-3 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600 ring-1 ring-rose-100">{requestsError}</p>
+          ) : null}
+
+          <div className="mt-4 grid gap-4 md:grid-cols-2">
+            <div className="rounded-[1.5rem] bg-slate-50 p-4 ring-1 ring-slate-100">
+              <h4 className="text-base font-bold text-slate-900">Recibidas{unreadIncomingCount > 0 ? ` (${unreadIncomingCount} nuevas)` : ""}</h4>
+              <p className="mt-1 text-sm text-slate-500">Solicitudes que puedes aceptar o rechazar.</p>
+              <div className="mt-3 grid gap-3">
+                {isRequestsLoading ? (
+                  <p className="text-sm text-slate-500">Cargando solicitudes...</p>
+                ) : incomingRequests.length === 0 ? (
+                  <p className="text-sm text-slate-500">No tienes solicitudes pendientes.</p>
+                ) : (
+                  incomingRequests.map((item) => {
+                    const requester = item.requester_nickname || item.requester_name || item.requester_email || "Usuario";
+                    return (
+                      <div key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+                        <Link href={`/assets/${item.asset_id}`} className="text-sm font-bold text-slate-900 hover:text-lime-700">
+                          {item.asset_name}
+                        </Link>
+                        <p className="mt-1 text-sm text-slate-600">{requester} solicitó este activo.</p>
+                        {item.isUnread ? <p className="mt-1 text-xs font-semibold text-lime-700">Nueva notificación</p> : null}
+                        <p className="mt-1 text-xs text-slate-400">
+                          {new Date(item.created_at).toLocaleString("es-PE", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {item.isUnread ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestMarkRead(item.id)}
+                              className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                            >
+                              Marcar leída
+                            </button>
+                          ) : null}
+                          <button
+                            type="button"
+                            onClick={() => handleRequestAction(item.id, "accept")}
+                            className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                          >
+                            Ceder activo
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRequestAction(item.id, "reject")}
+                            className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                          >
+                            Rechazar
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            <div className="rounded-[1.5rem] bg-slate-50 p-4 ring-1 ring-slate-100">
+              <h4 className="text-base font-bold text-slate-900">Enviadas{unreadOutgoingCount > 0 ? ` (${unreadOutgoingCount} nuevas)` : ""}</h4>
+              <p className="mt-1 text-sm text-slate-500">Solicitudes enviadas y sus respuestas recientes.</p>
+              <div className="mt-3 grid gap-3">
+                {isRequestsLoading ? (
+                  <p className="text-sm text-slate-500">Cargando solicitudes...</p>
+                ) : outgoingRequests.length === 0 ? (
+                  <p className="text-sm text-slate-500">No has enviado solicitudes pendientes.</p>
+                ) : (
+                  outgoingRequests.map((item) => {
+                    const holder = item.holder_nickname || item.holder_name || item.holder_email || "Responsable actual";
+                    return (
+                      <div key={item.id} className="rounded-2xl bg-white p-4 ring-1 ring-slate-200">
+                        <Link href={`/assets/${item.asset_id}`} className="text-sm font-bold text-slate-900 hover:text-lime-700">
+                          {item.asset_name}
+                        </Link>
+                        <p className="mt-1 text-sm text-slate-600">
+                          {item.status === "pendiente"
+                            ? `Esperando respuesta de ${holder}.`
+                            : item.status === "aceptada"
+                              ? `${holder} aceptó la solicitud.`
+                              : item.status === "rechazada"
+                                ? `${holder} rechazó la solicitud.`
+                                : "Solicitud cancelada."}
+                        </p>
+                        {item.isUnread ? <p className="mt-1 text-xs font-semibold text-lime-700">Nueva actualización</p> : null}
+                        <p className="mt-1 text-xs text-slate-400">
+                          {new Date(item.created_at).toLocaleString("es-PE", {
+                            year: "numeric",
+                            month: "short",
+                            day: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {item.status === "pendiente" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestCancel(item.id)}
+                              className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                            >
+                              Cancelar
+                            </button>
+                          ) : null}
+                          {item.isUnread ? (
+                            <button
+                              type="button"
+                              onClick={() => handleRequestMarkRead(item.id)}
+                              className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                            >
+                              Marcar leída
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       </main>
     </div>

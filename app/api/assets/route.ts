@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDbBinding } from "@/app/lib/db";
+import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruDate, getPeruISOString } from "@/app/lib/time";
 
 export const runtime = "edge";
@@ -89,10 +89,10 @@ export async function GET(request: Request) {
         a.current_value,
         a.status,
         a.notes,
-        usr.nickname AS holder_nickname,
-        usr.email AS holder_email,
-        usr.full_name AS holder_name,
-        usr.picture AS holder_picture,
+        holder.nickname AS holder_nickname,
+        holder.email AS holder_email,
+        holder.full_name AS holder_name,
+        holder.picture AS holder_picture,
         a.created_at,
         i.instrument_type,
         i.brand,
@@ -106,7 +106,7 @@ export async function GET(request: Request) {
         u.has_greguesco,
         GROUP_CONCAT(DISTINCT tg.tag) AS tags
       FROM assets a
-      LEFT JOIN users usr ON usr.id = a.created_by_user_id
+      LEFT JOIN users holder ON holder.id = a.holder_user_id
       LEFT JOIN asset_instruments i ON i.asset_id = a.id
       LEFT JOIN asset_recognitions r ON r.asset_id = a.id
       LEFT JOIN asset_uniforms u ON u.asset_id = a.id
@@ -122,10 +122,10 @@ export async function GET(request: Request) {
         a.current_value,
         a.status,
         a.notes,
-        usr.nickname,
-        usr.email,
-        usr.full_name,
-        usr.picture,
+        holder.nickname,
+        holder.email,
+        holder.full_name,
+        holder.picture,
         a.created_at,
         i.instrument_type,
         i.brand,
@@ -254,17 +254,19 @@ export async function POST(request: Request) {
 
 
     let createdByUserId: string | null = null;
+    let holderUserId: string | null = null;
     let holderDisplayName: string | null = null;
     if (createdByEmail) {
       const user = await db.prepare("SELECT id, nickname, full_name, email FROM users WHERE email = ?").bind(createdByEmail).first();
       createdByUserId = user?.id || null;
+      holderUserId = user?.id || null;
       holderDisplayName = user?.nickname || user?.full_name || user?.email || null;
     }
 
     await db
       .prepare(
-        `INSERT INTO assets (id, asset_type, name, photo_url, fabrication_year, current_value, status, notes, created_by_user_id, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+        `INSERT INTO assets (id, asset_type, name, photo_url, fabrication_year, current_value, status, notes, created_by_user_id, holder_user_id, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
       )
       .bind(
         assetId,
@@ -276,9 +278,32 @@ export async function POST(request: Request) {
         status || "bajo_responsabilidad",
         notes ?? null,
         createdByUserId,
+        holderUserId,
         getPeruISOString()          // stored as Peru local time, not UTC
       )
       .run();
+
+    try {
+      await db
+        .prepare(
+          `INSERT INTO asset_movements (id, asset_id, movement_type, from_user_id, to_user_id, notes, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .bind(
+          crypto.randomUUID(),
+          assetId,
+          "creacion",
+          null,
+          holderUserId,
+          "Activo registrado en el sistema.",
+          getPeruISOString()
+        )
+        .run();
+    } catch (error) {
+      if (!isMissingTableError(error, "asset_movements")) {
+        throw error;
+      }
+    }
 
     if (assetType === "instrumento") {
       await db

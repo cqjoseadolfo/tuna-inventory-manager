@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/app/context/AuthContext";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 
@@ -16,6 +17,11 @@ interface AssetDetail {
   status: string;
   notes: string | null;
   created_at: string;
+  creator_user_id: string | null;
+  creator_nickname?: string | null;
+  creator_name?: string | null;
+  creator_email?: string | null;
+  holder_user_id: string | null;
   holder_nickname: string | null;
   holder_name: string | null;
   holder_email: string | null;
@@ -31,6 +37,29 @@ interface AssetDetail {
   has_jubon: number | null;
   has_greguesco: number | null;
   tags: string[];
+  movements: Array<{
+    id: string;
+    movement_type: string;
+    notes: string | null;
+    created_at: string;
+    from_nickname: string | null;
+    from_name: string | null;
+    from_email: string | null;
+    to_nickname: string | null;
+    to_name: string | null;
+    to_email: string | null;
+  }>;
+  pendingRequest?: {
+    id: string;
+    status: string;
+    created_at: string;
+    requester_user_id: string;
+    holder_read_at?: string | null;
+    requester_read_at?: string | null;
+    requester_nickname: string | null;
+    requester_name: string | null;
+    requester_email: string | null;
+  } | null;
 }
 
 const statusLabel: Record<string, string> = {
@@ -38,6 +67,7 @@ const statusLabel: Record<string, string> = {
   en_reparacion: "En reparación",
   baja: "Baja",
   disponible: "Disponible",
+  solicitado: "Solicitado",
 };
 
 const typeLabel: Record<AssetType, string> = {
@@ -66,21 +96,40 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
 
 export default function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [requestFeedback, setRequestFeedback] = useState("");
+  const [isRequestSubmitting, setIsRequestSubmitting] = useState(false);
+
+  const loadAsset = async () => {
+    if (!id) return;
+    setIsLoading(true);
+    setError("");
+
+    try {
+      const params = new URLSearchParams();
+      if (user?.email) {
+        params.set("viewerEmail", user.email);
+      }
+      const query = params.toString();
+      const response = await fetch(`/api/assets/${id}${query ? `?${query}` : ""}`);
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "No se pudo cargar el activo.");
+      }
+      setAsset(data);
+    } catch (err: any) {
+      setError(err.message || "No se pudo cargar el activo.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!id) return;
-    fetch(`/api/assets/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.error) throw new Error(data.error);
-        setAsset(data);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setIsLoading(false));
-  }, [id]);
+    loadAsset();
+  }, [id, user?.email]);
 
   if (isLoading) {
     return (
@@ -104,6 +153,17 @@ export default function AssetDetailPage() {
   }
 
   const holderDisplay = asset.holder_nickname || asset.holder_name || asset.holder_email || "—";
+  const creatorDisplay = asset.creator_nickname || asset.creator_name || asset.creator_email || "—";
+  const pendingRequesterDisplay =
+    asset.pendingRequest?.requester_nickname ||
+    asset.pendingRequest?.requester_name ||
+    asset.pendingRequest?.requester_email ||
+    "";
+  const isHolder = !!user?.email && !!asset.holder_email && user.email.toLowerCase() === asset.holder_email.toLowerCase();
+  const isRequester =
+    !!user?.email &&
+    !!asset.pendingRequest?.requester_email &&
+    user.email.toLowerCase() === asset.pendingRequest.requester_email.toLowerCase();
   const createdAtLabel = asset.created_at
     ? new Date(asset.created_at).toLocaleString("es-PE", {
         year: "numeric",
@@ -113,16 +173,119 @@ export default function AssetDetailPage() {
         minute: "2-digit",
       })
     : "—";
-  const movementItems = asset.created_at
-    ? [
-        {
-          id: `created-${asset.id}`,
-          type: "Creacion",
-          description: "Activo registrado en el sistema.",
-          date: createdAtLabel,
-        },
-      ]
-    : [];
+  const movementItems = [
+    {
+      id: `created-${asset.id}`,
+      type: "Creacion",
+      description: "Activo registrado en el sistema.",
+      date: createdAtLabel,
+    },
+    ...((asset.movements || [])
+      .filter((movement) => movement.movement_type !== "creacion")
+      .map((movement) => {
+        const fromDisplay = movement.from_nickname || movement.from_name || movement.from_email || "sin responsable";
+        const toDisplay = movement.to_nickname || movement.to_name || movement.to_email || "sin responsable";
+        const typeMap: Record<string, string> = {
+          solicitud: "Solicitud",
+          traspaso: "Traspaso",
+          rechazo: "Rechazo",
+          cancelacion: "Cancelación",
+        };
+        const descriptionMap: Record<string, string> = {
+          solicitud: `${toDisplay} solicitó este activo a ${fromDisplay}.`,
+          traspaso: `${fromDisplay} cedió este activo a ${toDisplay}.`,
+          rechazo: `${fromDisplay} rechazó la solicitud de ${toDisplay}.`,
+          cancelacion: `${toDisplay} canceló la solicitud de este activo.`,
+        };
+
+        return {
+          id: movement.id,
+          type: typeMap[movement.movement_type] || movement.movement_type,
+          description: movement.notes || descriptionMap[movement.movement_type] || "Movimiento registrado.",
+          date: movement.created_at
+            ? new Date(movement.created_at).toLocaleString("es-PE", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })
+            : "—",
+        };
+      })),
+  ];
+
+  const handleRequestAsset = async () => {
+    if (!user?.email || !asset) return;
+    setIsRequestSubmitting(true);
+    setRequestFeedback("");
+
+    try {
+      const response = await fetch("/api/asset-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ assetId: asset.id, requesterEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "No se pudo registrar la solicitud.");
+      }
+      setRequestFeedback("Solicitud enviada al responsable actual.");
+      await loadAsset();
+    } catch (err: any) {
+      setRequestFeedback(err.message || "No se pudo registrar la solicitud.");
+    } finally {
+      setIsRequestSubmitting(false);
+    }
+  };
+
+  const handlePendingRequest = async (action: "accept" | "reject") => {
+    if (!user?.email || !asset?.pendingRequest?.id) return;
+    setIsRequestSubmitting(true);
+    setRequestFeedback("");
+
+    try {
+      const response = await fetch(`/api/asset-requests/${asset.pendingRequest.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, actingUserEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "No se pudo procesar la solicitud.");
+      }
+      setRequestFeedback(action === "accept" ? "Activo cedido correctamente." : "Solicitud rechazada.");
+      await loadAsset();
+    } catch (err: any) {
+      setRequestFeedback(err.message || "No se pudo procesar la solicitud.");
+    } finally {
+      setIsRequestSubmitting(false);
+    }
+  };
+
+  const handleCancelRequest = async () => {
+    if (!user?.email || !asset?.pendingRequest?.id) return;
+    setIsRequestSubmitting(true);
+    setRequestFeedback("");
+
+    try {
+      const response = await fetch(`/api/asset-requests/${asset.pendingRequest.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "cancel", actingUserEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok || data.error) {
+        throw new Error(data.error || "No se pudo cancelar la solicitud.");
+      }
+      setRequestFeedback("Solicitud cancelada.");
+      await loadAsset();
+    } catch (err: any) {
+      setRequestFeedback(err.message || "No se pudo cancelar la solicitud.");
+    } finally {
+      setIsRequestSubmitting(false);
+    }
+  };
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
@@ -160,6 +323,7 @@ export default function AssetDetailPage() {
             <DetailRow label="ID interno" value={asset.id} />
             <DetailRow label="Código" value={asset.name} />
             <DetailRow label="Estado" value={statusLabel[asset.status] || asset.status} />
+            <DetailRow label="Creado por" value={creatorDisplay} />
             <DetailRow label="Responsable" value={holderDisplay} />
             <DetailRow label="Correo responsable" value={asset.holder_email} />
             <DetailRow label="Tipo" value={typeLabel[asset.asset_type]} />
@@ -198,6 +362,82 @@ export default function AssetDetailPage() {
               </div>
             )}
           </dl>
+        </div>
+
+        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">Solicitud del activo</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                El responsable actual puede ceder el activo a otro integrante cuando exista una solicitud pendiente.
+              </p>
+            </div>
+
+            {user ? (
+              isHolder ? null : asset.pendingRequest ? (
+                isRequester ? (
+                  <button
+                    type="button"
+                    onClick={handleCancelRequest}
+                    disabled={isRequestSubmitting}
+                    className="rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 disabled:cursor-not-allowed disabled:text-slate-400"
+                  >
+                    {isRequestSubmitting ? "Procesando..." : "Cancelar solicitud"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-semibold text-slate-500 ring-1 ring-slate-200"
+                  >
+                    Activo con solicitud pendiente
+                  </button>
+                )
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleRequestAsset}
+                  disabled={isRequestSubmitting || !asset.holder_user_id}
+                  className="rounded-2xl bg-lime-600 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-lime-700 disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  {isRequestSubmitting ? "Enviando..." : "Solicitar"}
+                </button>
+              )
+            ) : (
+              <span className="text-sm font-medium text-slate-500">Inicia sesión para solicitar este activo.</span>
+            )}
+          </div>
+
+          {asset.pendingRequest && (
+            <div className="mt-4 rounded-2xl bg-amber-50 px-4 py-4 ring-1 ring-amber-200">
+              <p className="text-xs font-semibold uppercase tracking-wide text-amber-700">Solicitud pendiente</p>
+              <p className="mt-1 text-sm text-slate-700">
+                {pendingRequesterDisplay} solicitó este activo.
+              </p>
+              {isHolder ? (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handlePendingRequest("accept")}
+                    disabled={isRequestSubmitting}
+                    className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-400"
+                  >
+                    {isRequestSubmitting ? "Procesando..." : "Ceder activo"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handlePendingRequest("reject")}
+                    disabled={isRequestSubmitting}
+                    className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 disabled:cursor-not-allowed disabled:text-slate-400"
+                  >
+                    Rechazar
+                  </button>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {requestFeedback ? <p className="mt-3 text-sm text-slate-600">{requestFeedback}</p> : null}
         </div>
 
         {/* Tags */}
