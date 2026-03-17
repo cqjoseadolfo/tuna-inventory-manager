@@ -1,13 +1,22 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
 
 type AssetItem = {
   id: string;
+  name?: string;
+  photoUrl?: string | null;
+  holderPicture?: string | null;
+  holderDisplayName?: string | null;
+  holderNickname?: string | null;
+  holderName?: string | null;
   status: string;
   tags: string[];
+  notes?: string | null;
+  assetType?: string;
   holderEmail?: string | null;
 };
 
@@ -17,6 +26,7 @@ type AssetRequestItem = {
   asset_name?: string;
   status?: string;
   isUnread?: boolean;
+  created_at?: string;
 };
 
 type AcceptedAssetDetail = {
@@ -81,6 +91,7 @@ type DashboardFilter = "all" | "mine" | "requested";
 const DONUT_COLORS = ["#84cc16", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#3b82f6"];
 
 export default function Dashboard() {
+  const router = useRouter();
   const emptyEditForm = (): EditFormState => ({
     name: "",
     photoUrl: "",
@@ -109,6 +120,7 @@ export default function Dashboard() {
   const [statsError, setStatsError] = useState("");
   const [activeFilter, setActiveFilter] = useState<DashboardFilter>("all");
   const [incomingRequests, setIncomingRequests] = useState<AssetRequestItem[]>([]);
+  const [outgoingRequests, setOutgoingRequests] = useState<AssetRequestItem[]>([]);
   const [unreadIncomingCount, setUnreadIncomingCount] = useState(0);
   const [acceptedNotice, setAcceptedNotice] = useState<AssetRequestItem | null>(null);
   const [acceptedAsset, setAcceptedAsset] = useState<AcceptedAssetDetail | null>(null);
@@ -202,6 +214,7 @@ export default function Dashboard() {
       }
       setIncomingRequests(Array.isArray(data?.incoming) ? data.incoming : []);
       const outgoing = Array.isArray(data?.outgoing) ? data.outgoing : [];
+      setOutgoingRequests(outgoing);
       setUnreadIncomingCount(Number(data?.unreadIncomingCount || 0));
 
       const acceptedUnread = outgoing
@@ -371,13 +384,14 @@ export default function Dashboard() {
 
   const totalAssets = assets.length;
   const inPossessionCount = assets.filter(isMine).length;
-  const requestedCount = assets.filter((item: AssetItem) => item.status === "solicitado").length;
+  const pendingOutgoingRequests = outgoingRequests.filter((item: AssetRequestItem) => String(item.status || "") === "pendiente");
+  const requestedCount = pendingOutgoingRequests.length;
 
   const filteredAssets =
     activeFilter === "mine"
       ? assets.filter(isMine)
       : activeFilter === "requested"
-        ? assets.filter((item: AssetItem) => item.status === "solicitado")
+        ? assets.filter((item: AssetItem) => String(item.status || "").toLowerCase() === "solicitado")
         : assets;
 
   const tagMap = new Map<string, number>();
@@ -981,6 +995,118 @@ export default function Dashboard() {
           {statsError && (
             <p className="rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-600 ring-1 ring-rose-100">{statsError}</p>
           )}
+
+          {activeFilter === "mine" ? (
+            <article className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-bold text-slate-900">Activos bajo mi responsabilidad</h3>
+                <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                  {filteredAssets.length}
+                </span>
+              </div>
+
+              {filteredAssets.length === 0 ? (
+                <p className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500 ring-1 ring-slate-100">
+                  No tienes activos en uso actualmente.
+                </p>
+              ) : (
+                <div className="max-h-[380px] overflow-auto rounded-xl border border-slate-200">
+                  <table className="min-w-[760px] table-fixed text-left text-sm">
+                    <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                      <tr>
+                        <th className="w-[18%] px-3 py-2">Foto</th>
+                        <th className="w-[20%] px-3 py-2">Estado</th>
+                        <th className="w-[26%] px-3 py-2">Responsable</th>
+                        <th className="w-[36%] px-3 py-2">Descripción</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredAssets.map((item) => {
+                        const assetPhotoUrl = resolveUserImageUrl(item.photoUrl);
+                        const holderPhotoUrl = resolveUserImageUrl(item.holderPicture);
+                        const holder = item.holderDisplayName || item.holderNickname || item.holderName || item.holderEmail || "—";
+                        const statusLabel = statusLabelMap.get(item.status) || item.status;
+                        return (
+                          <tr
+                            key={item.id}
+                            className="cursor-pointer border-t border-slate-100 transition hover:bg-slate-50"
+                            onClick={() => router.push(`/assets/${item.id}`)}
+                          >
+                            <td className="px-3 py-2">
+                              {assetPhotoUrl ? (
+                                <img src={assetPhotoUrl} alt={item.name || "Activo"} className="h-14 w-14 rounded-lg border border-slate-200 object-cover" />
+                              ) : (
+                                <div className="grid h-14 w-14 place-items-center rounded-lg border border-slate-200 bg-slate-50 text-xl">📦</div>
+                              )}
+                            </td>
+                            <td className="px-3 py-2">
+                              <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700">
+                                {statusLabel}
+                              </span>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="flex items-center gap-2">
+                                {holderPhotoUrl ? (
+                                  <img src={holderPhotoUrl} alt={holder} className="h-7 w-7 rounded-full border border-slate-200 object-cover" />
+                                ) : (
+                                  <div className="grid h-7 w-7 place-items-center rounded-full border border-slate-200 bg-slate-100 text-[10px] font-bold text-slate-600">
+                                    {holder.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="truncate text-sm font-medium text-slate-700">{holder}</span>
+                              </div>
+                            </td>
+                            <td className="px-3 py-2 text-slate-700">
+                              <p className="truncate font-medium">{item.name || "Activo"}</p>
+                              <p className="truncate text-xs text-slate-500">{item.notes || "Sin descripción"}</p>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </article>
+          ) : null}
+
+          {activeFilter === "requested" ? (
+            <article className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+              <div className="mb-3 flex items-center justify-between gap-2">
+                <h3 className="text-base font-bold text-slate-900">Solicitudes enviadas pendientes</h3>
+                <span className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-200">
+                  {pendingOutgoingRequests.length}
+                </span>
+              </div>
+
+              {pendingOutgoingRequests.length === 0 ? (
+                <p className="rounded-xl bg-slate-50 px-3 py-4 text-sm text-slate-500 ring-1 ring-slate-100">
+                  No tienes solicitudes pendientes de aprobación.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {pendingOutgoingRequests.map((request) => (
+                    <li key={request.id} className="rounded-xl border border-slate-200 bg-white px-3 py-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-900">{request.asset_name || "Activo"}</p>
+                          <p className="text-xs text-slate-500">
+                            Pendiente{request.created_at ? ` · ${new Date(request.created_at).toLocaleString("es-PE")}` : ""}
+                          </p>
+                        </div>
+                        <Link
+                          href={`/assets/${request.asset_id}`}
+                          className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-semibold text-slate-700"
+                        >
+                          Ver activo
+                        </Link>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </article>
+          ) : null}
         </section>
 
         <section className="grid gap-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100 md:grid-cols-[auto,1fr] md:items-center">
