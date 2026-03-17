@@ -12,6 +12,7 @@ interface AssetDetail {
   name: string;
   photo_url: string;
   fabrication_year: number | null;
+  current_value: number | null;
   status: string;
   notes: string | null;
   created_at: string;
@@ -103,6 +104,25 @@ export default function AssetDetailPage() {
   }
 
   const holderDisplay = asset.holder_nickname || asset.holder_name || asset.holder_email || "—";
+  const createdAtLabel = asset.created_at
+    ? new Date(asset.created_at).toLocaleString("es-PE", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      })
+    : "—";
+  const movementItems = asset.created_at
+    ? [
+        {
+          id: `created-${asset.id}`,
+          type: "Creacion",
+          description: "Activo registrado en el sistema.",
+          date: createdAtLabel,
+        },
+      ]
+    : [];
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
@@ -123,21 +143,36 @@ export default function AssetDetailPage() {
         </div>
 
         {/* Photo */}
-        {asset.photo_url && (
-          <div className="overflow-hidden rounded-[2rem] shadow-sm ring-1 ring-slate-100">
+        <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-100">
+          {asset.photo_url ? (
             <img src={asset.photo_url} alt="Foto del activo" className="h-64 w-full object-cover" />
-          </div>
-        )}
+          ) : (
+            <div className="flex h-64 w-full items-center justify-center bg-slate-50 text-sm font-medium text-slate-400">
+              Sin foto registrada
+            </div>
+          )}
+        </div>
 
         {/* Main data */}
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
           <h2 className="mb-4 text-lg font-bold text-slate-900">Ficha del activo</h2>
           <dl className="grid grid-cols-2 gap-3">
+            <DetailRow label="ID interno" value={asset.id} />
             <DetailRow label="Código" value={asset.name} />
             <DetailRow label="Estado" value={statusLabel[asset.status] || asset.status} />
             <DetailRow label="Responsable" value={holderDisplay} />
+            <DetailRow label="Correo responsable" value={asset.holder_email} />
             <DetailRow label="Tipo" value={typeLabel[asset.asset_type]} />
             <DetailRow label="Año de fabricación" value={asset.fabrication_year} />
+            <DetailRow
+              label="Valor actual"
+              value={
+                asset.current_value !== null && asset.current_value !== undefined
+                  ? `S/ ${Number(asset.current_value).toFixed(2)}`
+                  : "—"
+              }
+            />
+            <DetailRow label="Fecha de creación" value={createdAtLabel} />
             {/* Instrument */}
             <DetailRow label="Instrumento" value={asset.instrument_type} />
             <DetailRow label="Marca" value={asset.brand} />
@@ -179,18 +214,24 @@ export default function AssetDetailPage() {
           </div>
         )}
 
-        {/* Historical info placeholder */}
+        {/* Movement log */}
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <h2 className="mb-1 text-lg font-bold text-slate-900">Historial</h2>
-          <p className="text-sm text-slate-500">
-            Registrado el{" "}
-            {asset.created_at
-              ? new Date(asset.created_at).toLocaleDateString("es-PE", { year: "numeric", month: "long", day: "numeric" })
-              : "—"}
-          </p>
-          <div className="mt-4 rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
-            El historial de cambios y transferencias estará disponible próximamente.
-          </div>
+          <h2 className="mb-3 text-lg font-bold text-slate-900">Registro de movimientos</h2>
+          {movementItems.length > 0 ? (
+            <ul className="space-y-3">
+              {movementItems.map((movement) => (
+                <li key={movement.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-lime-700">{movement.type}</p>
+                  <p className="mt-1 text-sm font-medium text-slate-700">{movement.description}</p>
+                  <p className="mt-1 text-xs text-slate-500">{movement.date}</p>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
+              Aun no hay movimientos registrados.
+            </div>
+          )}
         </div>
 
       </section>
