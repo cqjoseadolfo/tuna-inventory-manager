@@ -173,16 +173,16 @@ export default function AssetSearch() {
   };
 
   return (
-    <section className="asset-panel glass">
+    <section className="assets-datagrid">
       {/* Header */}
-      <div className="assets-grid-header">
+      <div className="assets-datagrid-toolbar">
         <div>
-          <h3>Activos registrados</h3>
-          <p className="muted-text">
+          <h3 className="assets-datagrid-title">Activos registrados</h3>
+          <p className="assets-datagrid-meta">
             {isLoading ? "Cargando…" : `${filtered.length} de ${allItems.length} activos`}
           </p>
         </div>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+        <div className="assets-datagrid-actions">
           {hasFilters && (
             <button className="clear-filters-btn" onClick={clearFilters}>
               Limpiar filtros
@@ -194,7 +194,7 @@ export default function AssetSearch() {
         </div>
       </div>
 
-      {error && <p className="error-text">{error}</p>}
+      {error && <p className="assets-grid-error">{error}</p>}
 
       {/* Grid table */}
       <div className="assets-table-wrap">

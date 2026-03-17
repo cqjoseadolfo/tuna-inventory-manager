@@ -123,6 +123,16 @@ const typeLabel: Record<AssetType, string> = {
   otro: "Otro",
 };
 
+const isDirectRenderableUrl = (url: string) =>
+  url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:");
+
+const resolveAssetImageUrl = (url?: string | null) => {
+  const source = String(url || "").trim();
+  if (!source) return "";
+  if (isDirectRenderableUrl(source)) return source;
+  return `/api/ui/asset-image?url=${encodeURIComponent(source)}`;
+};
+
 function DetailRow({ label, value }: { label: string; value?: string | number | null }) {
   if (!value && value !== 0) return null;
   return (
@@ -444,7 +454,7 @@ export default function AssetDetailPage() {
         {/* Photo */}
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-100">
           {asset.photo_url ? (
-            <img src={asset.photo_url} alt="Foto del activo" className="h-64 w-full object-cover" />
+            <img src={resolveAssetImageUrl(asset.photo_url)} alt="Foto del activo" className="h-64 w-full object-cover" />
           ) : (
             <div className="flex h-64 w-full items-center justify-center bg-slate-50 text-sm font-medium text-slate-400">
               Sin foto registrada
