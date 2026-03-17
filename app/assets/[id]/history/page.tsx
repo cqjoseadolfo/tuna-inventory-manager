@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import AppHamburgerMenu from "@/components/AppHamburgerMenu";
+import PageHeader from "@/components/PageHeader";
 
 type MovementItem = {
   id: string;
@@ -53,6 +52,7 @@ const PAGE_SIZE = 20;
 
 export default function AssetHistoryPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
 
   const [isLoading, setIsLoading] = useState(true);
@@ -139,21 +139,12 @@ export default function AssetHistoryPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
-      <AppHamburgerMenu />
       <section className="w-full max-w-6xl space-y-4">
-        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              href={`/assets/${id}`}
-              aria-label="Volver a la ficha del activo"
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-xl text-slate-700"
-            >
-              ‹
-            </Link>
-            <h1 className="truncate text-xl font-black text-slate-900">Histórico: {assetName}</h1>
-            <span className="h-10 w-10" aria-hidden="true"></span>
-          </div>
-        </div>
+        <PageHeader
+          title={`Histórico: ${assetName}`}
+          backHref={`/assets/${id}`}
+          backLabel="Volver a la ficha del activo"
+        />
 
         {error ? (
           <div className="rounded-[2rem] bg-rose-50 p-4 text-sm font-medium text-rose-700 ring-1 ring-rose-200">{error}</div>
@@ -171,13 +162,13 @@ export default function AssetHistoryPage() {
               />
             </div>
 
-            <div className="max-h-[420px] overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-full text-left text-sm">
+            <div className="max-h-[420px] w-full overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200">
+              <table className="w-full table-fixed text-left text-sm">
                 <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-3 py-2">Tipo</th>
-                    <th className="px-3 py-2">Detalle</th>
-                    <th className="px-3 py-2">Fecha</th>
+                    <th className="w-[24%] px-3 py-2">Tipo</th>
+                    <th className="w-[48%] px-3 py-2">Detalle</th>
+                    <th className="w-[28%] px-3 py-2">Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -190,19 +181,37 @@ export default function AssetHistoryPage() {
                     const to = row.to_nickname || row.to_name || row.to_email || "sin responsable";
                     const label = `${from} → ${to}`;
                     return (
-                      <tr key={row.id} className="border-t border-slate-100 align-top">
-                        <td className="px-3 py-2 font-semibold text-slate-700">{row.movement_type}</td>
-                        <td className="px-3 py-2 text-slate-700">
-                          <p className="font-medium">{row.notes || label}</p>
-                          <p className="text-xs text-slate-500">{label}</p>
+                      <tr
+                        key={row.id}
+                        className="cursor-pointer border-t border-slate-100 align-top transition hover:bg-slate-50 focus-within:bg-slate-50"
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Ver detalle del movimiento ${row.movement_type}`}
+                        onClick={() => router.push(`/assets/${id}/history/movements/${row.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            router.push(`/assets/${id}/history/movements/${row.id}`);
+                          }
+                        }}
+                      >
+                        <td className="px-3 py-2 font-semibold text-slate-700">
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={row.movement_type}>{row.movement_type}</span>
                         </td>
-                        <td className="px-3 py-2 text-xs text-slate-500">{new Date(row.created_at).toLocaleString("es-PE")}</td>
+                        <td className="px-3 py-2 text-slate-700">
+                          <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium" title={row.notes || label}>{row.notes || label}</p>
+                          <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500" title={label}>{label}</p>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-500">
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={new Date(row.created_at).toLocaleString("es-PE")}>{new Date(row.created_at).toLocaleString("es-PE")}</span>
+                        </td>
                       </tr>
                     );
                   })}
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-xs text-slate-500">Toca un registro para ver el detalle completo.</p>
 
             <div className="mt-3 flex items-center justify-between gap-2 text-sm">
               <span className="text-slate-500">Página {movementPage} de {movementPages}</span>
@@ -238,37 +247,49 @@ export default function AssetHistoryPage() {
               />
             </div>
 
-            <div className="max-h-[420px] overflow-auto rounded-xl border border-slate-200">
-              <table className="min-w-full text-left text-sm">
+            <div className="max-h-[420px] w-full overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200">
+              <table className="w-full table-fixed text-left text-sm">
                 <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                   <tr>
-                    <th className="px-3 py-2">Campo</th>
-                    <th className="px-3 py-2">Nuevo valor</th>
-                    <th className="px-3 py-2">Editor</th>
-                    <th className="px-3 py-2">Fecha</th>
-                    <th className="px-3 py-2">Acción</th>
+                    <th className="w-[22%] px-3 py-2">Campo</th>
+                    <th className="w-[30%] px-3 py-2">Nuevo valor</th>
+                    <th className="w-[22%] px-3 py-2">Editor</th>
+                    <th className="w-[26%] px-3 py-2">Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td className="px-3 py-3 text-slate-500" colSpan={5}>Cargando...</td></tr>
+                    <tr><td className="px-3 py-3 text-slate-500" colSpan={4}>Cargando...</td></tr>
                   ) : editRows.length === 0 ? (
-                    <tr><td className="px-3 py-3 text-slate-500" colSpan={5}>Sin resultados en esta página.</td></tr>
+                    <tr><td className="px-3 py-3 text-slate-500" colSpan={4}>Sin resultados en esta página.</td></tr>
                   ) : editRows.map((row) => {
                     const editor = row.editor_nickname || row.editor_name || row.editor_email || "Usuario";
                     return (
-                      <tr key={row.id} className="border-t border-slate-100 align-top">
-                        <td className="px-3 py-2 font-semibold text-slate-700">{row.field_name}</td>
-                        <td className="px-3 py-2 text-slate-700">{row.new_value || "(vacío)"}</td>
-                        <td className="px-3 py-2 text-slate-700">{editor}</td>
-                        <td className="px-3 py-2 text-xs text-slate-500">{new Date(row.edited_at).toLocaleString("es-PE")}</td>
-                        <td className="px-3 py-2">
-                          <Link
-                            href={`/assets/${id}/history/${row.id}`}
-                            className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
-                          >
-                            Ver
-                          </Link>
+                      <tr
+                        key={row.id}
+                        className="cursor-pointer border-t border-slate-100 align-top transition hover:bg-slate-50 focus-within:bg-slate-50"
+                        tabIndex={0}
+                        role="button"
+                        aria-label={`Ver detalle del cambio en ${row.field_name}`}
+                        onClick={() => router.push(`/assets/${id}/history/${row.id}`)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            router.push(`/assets/${id}/history/${row.id}`);
+                          }
+                        }}
+                      >
+                        <td className="px-3 py-2 font-semibold text-slate-700">
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={row.field_name}>{row.field_name}</span>
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={row.new_value || "(vacío)"}>{row.new_value || "(vacío)"}</span>
+                        </td>
+                        <td className="px-3 py-2 text-slate-700">
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={editor}>{editor}</span>
+                        </td>
+                        <td className="px-3 py-2 text-xs text-slate-500">
+                          <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={new Date(row.edited_at).toLocaleString("es-PE")}>{new Date(row.edited_at).toLocaleString("es-PE")}</span>
                         </td>
                       </tr>
                     );
@@ -276,6 +297,7 @@ export default function AssetHistoryPage() {
                 </tbody>
               </table>
             </div>
+            <p className="mt-2 text-xs text-slate-500">Toca un registro para ver el detalle completo.</p>
 
             <div className="mt-3 flex items-center justify-between gap-2 text-sm">
               <span className="text-slate-500">Página {editPage} de {editPages}</span>

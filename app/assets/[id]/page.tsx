@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import AppHamburgerMenu from "@/components/AppHamburgerMenu";
+import PageHeader from "@/components/PageHeader";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 
@@ -470,23 +470,15 @@ export default function AssetDetailPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
-      <AppHamburgerMenu />
       <section className="w-full max-w-xl space-y-4">
 
         {/* Top nav */}
-        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              href="/"
-              aria-label="Volver al panel"
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-xl text-slate-700"
-            >
-              ‹
-            </Link>
-            <h1 className="truncate text-xl font-black text-slate-900">{asset.name}</h1>
-            <span className="text-3xl" aria-hidden="true">{typeEmoji[asset.asset_type]}</span>
-          </div>
-        </div>
+        <PageHeader
+          title={asset.name}
+          subtitle={typeLabel[asset.asset_type]}
+          backHref="/"
+          backLabel="Volver al panel"
+        />
 
         {/* Photo */}
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-100">

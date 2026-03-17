@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
-import AppHamburgerMenu from "@/components/AppHamburgerMenu";
+import PageHeader from "@/components/PageHeader";
 
 type AssetSummary = {
   id: string;
@@ -96,21 +95,12 @@ export default function AssetEditLogDetailPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
-      <AppHamburgerMenu />
       <section className="w-full max-w-4xl space-y-4">
-        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <div className="flex items-center justify-between gap-3">
-            <Link
-              href={`/assets/${id}/history`}
-              aria-label="Volver al histórico"
-              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-xl text-slate-700"
-            >
-              ‹
-            </Link>
-            <h1 className="truncate text-xl font-black text-slate-900">Detalle del cambio</h1>
-            <span className="h-10 w-10" aria-hidden="true"></span>
-          </div>
-        </div>
+        <PageHeader
+          title="Detalle del cambio"
+          backHref={`/assets/${id}/history`}
+          backLabel="Volver al histórico"
+        />
 
         {error ? (
           <div className="rounded-[2rem] bg-rose-50 p-4 text-sm font-medium text-rose-700 ring-1 ring-rose-200">{error}</div>

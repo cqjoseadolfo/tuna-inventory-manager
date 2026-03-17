@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import AssetEntryForm from "@/components/AssetEntryForm";
-import AppHamburgerMenu from "@/components/AppHamburgerMenu";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
+import PageHeader from "@/components/PageHeader";
 
 export default function NewAssetPage() {
   const { user, isLoading } = useAuth();
@@ -34,15 +34,13 @@ export default function NewAssetPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
-      <AppHamburgerMenu />
       <section className="w-full max-w-xl space-y-4">
-        <div className="flex items-center justify-between pt-1">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Registro de activos</p>
-            <h1 className="mt-1 text-3xl font-black text-slate-900">Nuevo activo</h1>
-            <Link href="/" className="mt-2 inline-block text-sm font-semibold text-slate-500 hover:text-slate-700">← Volver al panel</Link>
-          </div>
-        </div>
+        <PageHeader
+          title="Nuevo activo"
+          subtitle="Registro de activos"
+          backHref="/"
+          backLabel="Volver al panel"
+        />
 
         <AssetEntryForm createdByEmail={user.email} createdByLabel={user.nickname || user.name} />
       </section>

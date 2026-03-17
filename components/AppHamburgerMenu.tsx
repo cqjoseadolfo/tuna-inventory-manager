@@ -5,7 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 
-export default function AppHamburgerMenu() {
+type AppHamburgerMenuProps = {
+  inline?: boolean;
+};
+
+export default function AppHamburgerMenu({ inline = false }: AppHamburgerMenuProps) {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
@@ -49,7 +53,11 @@ export default function AppHamburgerMenu() {
     <>
       <button
         type="button"
-        className="fixed right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-900 shadow-sm transition hover:shadow-md md:right-6 md:top-5"
+        className={
+          inline
+            ? "z-50 flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-900 shadow-sm transition hover:shadow-md"
+            : "fixed right-4 top-4 z-50 flex h-11 w-11 items-center justify-center rounded-full border border-slate-200 bg-white text-xl text-slate-900 shadow-sm transition hover:shadow-md md:right-6 md:top-5"
+        }
         aria-label="Abrir menú"
         aria-expanded={isOpen}
         onClick={() => setIsOpen((prev) => !prev)}
