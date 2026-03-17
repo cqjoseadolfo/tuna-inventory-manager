@@ -142,11 +142,17 @@ export default function AssetHistoryPage() {
       <AppHamburgerMenu />
       <section className="w-full max-w-6xl space-y-4">
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Histórico completo</p>
-          <h1 className="mt-1 text-2xl font-black text-slate-900">{assetName}</h1>
-          <Link href={`/assets/${id}`} className="mt-2 inline-block text-sm font-semibold text-slate-500 hover:text-slate-700">
-            ← Volver a la ficha del activo
-          </Link>
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href={`/assets/${id}`}
+              aria-label="Volver a la ficha del activo"
+              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-xl text-slate-700"
+            >
+              ‹
+            </Link>
+            <h1 className="truncate text-xl font-black text-slate-900">Histórico: {assetName}</h1>
+            <span className="h-10 w-10" aria-hidden="true"></span>
+          </div>
         </div>
 
         {error ? (
@@ -240,13 +246,14 @@ export default function AssetHistoryPage() {
                     <th className="px-3 py-2">Nuevo valor</th>
                     <th className="px-3 py-2">Editor</th>
                     <th className="px-3 py-2">Fecha</th>
+                    <th className="px-3 py-2">Acción</th>
                   </tr>
                 </thead>
                 <tbody>
                   {isLoading ? (
-                    <tr><td className="px-3 py-3 text-slate-500" colSpan={4}>Cargando...</td></tr>
+                    <tr><td className="px-3 py-3 text-slate-500" colSpan={5}>Cargando...</td></tr>
                   ) : editRows.length === 0 ? (
-                    <tr><td className="px-3 py-3 text-slate-500" colSpan={4}>Sin resultados en esta página.</td></tr>
+                    <tr><td className="px-3 py-3 text-slate-500" colSpan={5}>Sin resultados en esta página.</td></tr>
                   ) : editRows.map((row) => {
                     const editor = row.editor_nickname || row.editor_name || row.editor_email || "Usuario";
                     return (
@@ -255,6 +262,14 @@ export default function AssetHistoryPage() {
                         <td className="px-3 py-2 text-slate-700">{row.new_value || "(vacío)"}</td>
                         <td className="px-3 py-2 text-slate-700">{editor}</td>
                         <td className="px-3 py-2 text-xs text-slate-500">{new Date(row.edited_at).toLocaleString("es-PE")}</td>
+                        <td className="px-3 py-2">
+                          <Link
+                            href={`/assets/${id}/history/${row.id}`}
+                            className="text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                          >
+                            Ver
+                          </Link>
+                        </td>
                       </tr>
                     );
                   })}

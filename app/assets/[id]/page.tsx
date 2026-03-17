@@ -474,17 +474,18 @@ export default function AssetDetailPage() {
       <section className="w-full max-w-xl space-y-4">
 
         {/* Top nav */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">
-              {typeLabel[asset.asset_type]}
-            </p>
-            <h1 className="mt-1 text-2xl font-black text-slate-900">{asset.name}</h1>
-            <Link href="/" className="mt-1 inline-block text-sm font-semibold text-slate-500 hover:text-slate-700">
-              ← Volver al panel
+        <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
+          <div className="flex items-center justify-between gap-3">
+            <Link
+              href="/"
+              aria-label="Volver al panel"
+              className="grid h-10 w-10 place-items-center rounded-full border border-slate-200 text-xl text-slate-700"
+            >
+              ‹
             </Link>
+            <h1 className="truncate text-xl font-black text-slate-900">{asset.name}</h1>
+            <span className="text-3xl" aria-hidden="true">{typeEmoji[asset.asset_type]}</span>
           </div>
-          <span className="text-5xl">{typeEmoji[asset.asset_type]}</span>
         </div>
 
         {/* Photo */}
@@ -719,6 +720,12 @@ export default function AssetDetailPage() {
                       {logItem.new_value || "(vacío)"}
                     </p>
                     <p className="mt-1 text-xs text-slate-500">Por {editor} · {dateLabel}</p>
+                    <Link
+                      href={`/assets/${asset.id}/history/${logItem.id}`}
+                      className="mt-2 inline-block text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
+                    >
+                      Ver detalle del cambio
+                    </Link>
                   </li>
                 );
                 })}
