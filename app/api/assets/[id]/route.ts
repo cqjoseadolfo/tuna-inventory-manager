@@ -5,10 +5,22 @@ import { getAssetStatusesFromDb, normalizeStatusCode, updateAssetStatusWithFallb
 
 export const runtime = "edge";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(req: Request, { params }: { params: { id: string } }) {
   try {
     const { id } = params;
     if (!id) return NextResponse.json({ error: "ID requerido" }, { status: 400 });
+
+    const { searchParams } = new URL(req.url);
+    const parseNumber = (raw: string | null, fallback: number, min: number, max: number) => {
+      const parsed = Number(raw);
+      if (!Number.isFinite(parsed)) return fallback;
+      return Math.min(max, Math.max(min, Math.trunc(parsed)));
+    };
+
+    const movementLimit = parseNumber(searchParams.get("movementLimit"), 20, 1, 200);
+    const movementOffset = parseNumber(searchParams.get("movementOffset"), 0, 0, 200000);
+    const editLimit = parseNumber(searchParams.get("editLimit"), 20, 1, 200);
+    const editOffset = parseNumber(searchParams.get("editOffset"), 0, 0, 200000);
 
     const db = getDbBinding();
 
@@ -62,6 +74,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 
     let movements: any[] = [];
     let editLogs: any[] = [];
+    let movementTotal = 0;
+    let editLogsTotal = 0;
     let pendingRequest: any = null;
 
     try {
@@ -81,13 +95,24 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           FROM asset_movements m
           LEFT JOIN users from_usr ON from_usr.id = m.from_user_id
           LEFT JOIN users to_usr ON to_usr.id = m.to_user_id
-          WHERE m.asset_id = ?
-          ORDER BY m.created_at DESC`
+          WHERE m.asset_id = ? AND m.movement_type <> 'creacion'
+          ORDER BY m.created_at DESC
+          LIMIT ? OFFSET ?`
         )
-        .bind(id)
+        .bind(id, movementLimit, movementOffset)
         .all();
 
       movements = Array.isArray((movementRows as any)?.results) ? (movementRows as any).results : [];
+
+      const movementCountRow = await db
+        .prepare(
+          `SELECT COUNT(*) AS total
+           FROM asset_movements
+           WHERE asset_id = ? AND movement_type <> 'creacion'`
+        )
+        .bind(id)
+        .first<{ total: number }>();
+      movementTotal = Number(movementCountRow?.total || 0);
     } catch (error) {
       if (!isMissingTableError(error, "asset_movements")) {
         throw error;
@@ -109,12 +134,23 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           FROM asset_field_edit_logs l
           LEFT JOIN users editor ON editor.id = l.edited_by_user_id
           WHERE l.asset_id = ?
-          ORDER BY l.edited_at DESC`
+          ORDER BY l.edited_at DESC
+          LIMIT ? OFFSET ?`
         )
-        .bind(id)
+        .bind(id, editLimit, editOffset)
         .all();
 
       editLogs = Array.isArray((editRows as any)?.results) ? (editRows as any).results : [];
+
+      const editCountRow = await db
+        .prepare(
+          `SELECT COUNT(*) AS total
+           FROM asset_field_edit_logs
+           WHERE asset_id = ?`
+        )
+        .bind(id)
+        .first<{ total: number }>();
+      editLogsTotal = Number(editCountRow?.total || 0);
     } catch (error) {
       if (!isMissingTableError(error, "asset_field_edit_logs")) {
         throw error;
@@ -153,6 +189,18 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
       tags: asset.tags ? String(asset.tags).split(",").filter(Boolean) : [],
       movements,
       editLogs,
+      movementPagination: {
+        total: movementTotal,
+        limit: movementLimit,
+        offset: movementOffset,
+        hasMore: movementOffset + movements.length < movementTotal,
+      },
+      editLogsPagination: {
+        total: editLogsTotal,
+        limit: editLimit,
+        offset: editOffset,
+        hasMore: editOffset + editLogs.length < editLogsTotal,
+      },
       pendingRequest,
     });
   } catch (error: any) {

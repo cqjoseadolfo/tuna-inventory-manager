@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
+import AppHamburgerMenu from "@/components/AppHamburgerMenu";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 
@@ -49,6 +50,12 @@ interface AssetDetail {
     to_name: string | null;
     to_email: string | null;
   }>;
+  movementPagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
   pendingRequest?: {
     id: string;
     status: string;
@@ -70,6 +77,12 @@ interface AssetDetail {
     editor_name: string | null;
     editor_email: string | null;
   }>;
+  editLogsPagination?: {
+    total: number;
+    limit: number;
+    offset: number;
+    hasMore: boolean;
+  };
 }
 
 interface EditFormState {
@@ -120,9 +133,9 @@ const typeEmoji: Record<AssetType, string> = {
 function DetailRow({ label, value }: { label: string; value?: string | number | null }) {
   if (!value && value !== 0) return null;
   return (
-    <div className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+    <div className="min-w-0 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
       <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</dt>
-      <dd className="mt-0.5 font-semibold text-slate-800">{String(value)}</dd>
+      <dd className="mt-0.5 min-w-0 font-semibold text-slate-800">{String(value)}</dd>
     </div>
   );
 }
@@ -139,6 +152,8 @@ export default function AssetDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFeedback, setEditFeedback] = useState("");
+  const [visibleMovementCount, setVisibleMovementCount] = useState(6);
+  const [visibleEditLogCount, setVisibleEditLogCount] = useState(6);
   const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
     photoUrl: "",
@@ -169,6 +184,10 @@ export default function AssetDetailPage() {
       if (user?.email) {
         params.set("viewerEmail", user.email);
       }
+      params.set("movementLimit", "20");
+      params.set("movementOffset", "0");
+      params.set("editLimit", "20");
+      params.set("editOffset", "0");
       const query = params.toString();
       const response = await fetch(`/api/assets/${id}${query ? `?${query}` : ""}`);
       const data = await response.json();
@@ -176,6 +195,8 @@ export default function AssetDetailPage() {
         throw new Error(data.error || "No se pudo cargar el activo.");
       }
       setAsset(data);
+      setVisibleMovementCount(6);
+      setVisibleEditLogCount(6);
       setEditForm({
         name: data.name || "",
         photoUrl: data.photo_url || "",
@@ -303,6 +324,14 @@ export default function AssetDetailPage() {
         };
       })),
   ].sort((left, right) => new Date(right.sortDate).getTime() - new Date(left.sortDate).getTime());
+  const movementVisibleLimit = Math.min(20, movementItems.length);
+  const movementItemsVisible = movementItems.slice(0, visibleMovementCount);
+  const canLoadMoreMovements = visibleMovementCount < movementVisibleLimit;
+
+  const editLogsAll = Array.isArray(asset.editLogs) ? asset.editLogs : [];
+  const editLogsVisibleLimit = Math.min(20, editLogsAll.length);
+  const editLogsVisible = editLogsAll.slice(0, visibleEditLogCount);
+  const canLoadMoreEditLogs = visibleEditLogCount < editLogsVisibleLimit;
 
   const handleRequestAsset = async () => {
     if (!user?.email || !asset) return;
@@ -441,6 +470,7 @@ export default function AssetDetailPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
+      <AppHamburgerMenu />
       <section className="w-full max-w-xl space-y-4">
 
         {/* Top nav */}
@@ -488,7 +518,14 @@ export default function AssetDetailPage() {
             <DetailRow label="Estado" value={statusLabel[asset.status] || asset.status} />
             <DetailRow label="Creado por" value={creatorDisplay} />
             <DetailRow label="Responsable" value={holderDisplay} />
-            <DetailRow label="Correo responsable" value={asset.holder_email} />
+            {asset.holder_email ? (
+              <div className="col-span-2 min-w-0 rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-slate-400">Correo responsable</dt>
+                <dd className="mt-0.5 truncate text-xs font-medium text-slate-700" title={asset.holder_email}>
+                  {asset.holder_email}
+                </dd>
+              </div>
+            ) : null}
             <DetailRow label="Tipo" value={typeLabel[asset.asset_type]} />
             <DetailRow label="Año de fabricación" value={asset.fabrication_year} />
             <DetailRow
@@ -622,15 +659,36 @@ export default function AssetDetailPage() {
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
           <h2 className="mb-3 text-lg font-bold text-slate-900">Registro de movimientos</h2>
           {movementItems.length > 0 ? (
-            <ul className="space-y-3">
-              {movementItems.map((movement) => (
+            <>
+              <ul className="space-y-3">
+                {movementItemsVisible.map((movement) => (
                 <li key={movement.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
                   <p className="text-xs font-semibold uppercase tracking-wide text-lime-700">{movement.type}</p>
                   <p className="mt-1 text-sm font-medium text-slate-700">{movement.description}</p>
                   <p className="mt-1 text-xs text-slate-500">{movement.date}</p>
                 </li>
-              ))}
-            </ul>
+                ))}
+              </ul>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {canLoadMoreMovements ? (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleMovementCount(20)}
+                    className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                  >
+                    Cargar más
+                  </button>
+                ) : null}
+                {(asset.movementPagination?.hasMore || Number(asset.movementPagination?.total || 0) > 20) ? (
+                  <Link
+                    href={`/assets/${asset.id}/history`}
+                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Ver histórico completo
+                  </Link>
+                ) : null}
+              </div>
+            </>
           ) : (
             <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
               Aun no hay movimientos registrados.
@@ -640,9 +698,10 @@ export default function AssetDetailPage() {
 
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
           <h2 className="mb-3 text-lg font-bold text-slate-900">Historial de cambios</h2>
-          {Array.isArray(asset.editLogs) && asset.editLogs.length > 0 ? (
-            <ul className="space-y-3">
-              {asset.editLogs.map((logItem) => {
+          {editLogsAll.length > 0 ? (
+            <>
+              <ul className="space-y-3">
+                {editLogsVisible.map((logItem) => {
                 const editor = logItem.editor_nickname || logItem.editor_name || logItem.editor_email || "Usuario";
                 const dateLabel = logItem.edited_at
                   ? new Date(logItem.edited_at).toLocaleString("es-PE", {
@@ -662,8 +721,28 @@ export default function AssetDetailPage() {
                     <p className="mt-1 text-xs text-slate-500">Por {editor} · {dateLabel}</p>
                   </li>
                 );
-              })}
-            </ul>
+                })}
+              </ul>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {canLoadMoreEditLogs ? (
+                  <button
+                    type="button"
+                    onClick={() => setVisibleEditLogCount(20)}
+                    className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                  >
+                    Cargar más
+                  </button>
+                ) : null}
+                {(asset.editLogsPagination?.hasMore || Number(asset.editLogsPagination?.total || 0) > 20) ? (
+                  <Link
+                    href={`/assets/${asset.id}/history`}
+                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
+                  >
+                    Ver histórico completo
+                  </Link>
+                ) : null}
+              </div>
+            </>
           ) : (
             <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
               Aún no hay cambios registrados.

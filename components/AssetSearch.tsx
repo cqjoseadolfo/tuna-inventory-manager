@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, type KeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 
 type SearchResult = {
@@ -53,6 +53,7 @@ export default function AssetSearch() {
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterHolder, setFilterHolder] = useState("");
+  const [tagQuery, setTagQuery] = useState("");
   const [activeTags, setActiveTags] = useState<Set<string>>(new Set());
 
   useEffect(() => {
@@ -80,6 +81,17 @@ export default function AssetSearch() {
     allItems.forEach((item) => item.tags?.forEach((t) => set.add(t)));
     return Array.from(set).sort();
   }, [allItems]);
+
+  const tagSuggestions = useMemo(() => {
+    const query = tagQuery.trim().toLowerCase();
+    return allTags
+      .filter((tag) => {
+        if (activeTags.has(tag)) return false;
+        if (!query) return true;
+        return tag.toLowerCase().includes(query);
+      })
+      .slice(0, 8);
+  }, [allTags, activeTags, tagQuery]);
 
   // Client-side filtering
   const filtered = useMemo(() => {
@@ -115,11 +127,45 @@ export default function AssetSearch() {
     });
   };
 
+  const addTagFilter = (tag: string) => {
+    const normalized = String(tag || "").trim();
+    if (!normalized) return;
+    if (!allTags.includes(normalized)) return;
+    setActiveTags((prev) => new Set(prev).add(normalized));
+    setTagQuery("");
+  };
+
+  const removeTagFilter = (tag: string) => {
+    setActiveTags((prev) => {
+      const next = new Set(prev);
+      next.delete(tag);
+      return next;
+    });
+  };
+
+  const handleTagSearchKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key !== "Enter") return;
+    event.preventDefault();
+    const query = tagQuery.trim();
+    if (!query) return;
+
+    const exactMatch = allTags.find((tag) => tag.toLowerCase() === query.toLowerCase());
+    if (exactMatch) {
+      addTagFilter(exactMatch);
+      return;
+    }
+
+    if (tagSuggestions.length > 0) {
+      addTagFilter(tagSuggestions[0]);
+    }
+  };
+
   const clearFilters = () => {
     setFilterName("");
     setFilterType("");
     setFilterStatus("");
     setFilterHolder("");
+    setTagQuery("");
     setActiveTags(new Set());
   };
 
@@ -149,31 +195,46 @@ export default function AssetSearch() {
 
       {error && <p className="error-text">{error}</p>}
 
-      {/* Tag filter pills */}
-      {allTags.length > 0 && (
-        <div className="tag-filter-row">
-          <span className="tag-filter-label">Tags:</span>
-          <div className="tag-filter-pills">
-            {allTags.map((tag) => (
-              <button
-                key={tag}
-                className={`tag-pill${activeTags.has(tag) ? " tag-pill-active" : ""}`}
-                onClick={() => toggleTag(tag)}
-              >
-                {tag}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Grid table */}
       <div className="assets-table-wrap">
         <table className="assets-table">
           <thead>
             {/* Filter row */}
             <tr className="assets-table-filters">
-              <th />
+              <th>
+                {allTags.length > 0 ? (
+                  <div className="flex flex-col gap-2">
+                    <input
+                      className="col-filter-input"
+                      type="text"
+                      list="asset-search-tag-list"
+                      value={tagQuery}
+                      onChange={(event) => setTagQuery(event.target.value)}
+                      onKeyDown={handleTagSearchKeyDown}
+                      placeholder="Buscar tag + Enter"
+                    />
+                    {activeTags.size > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {Array.from(activeTags).map((tag) => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => removeTagFilter(tag)}
+                            className="rounded-full bg-slate-900 px-2 py-0.5 text-[10px] font-semibold text-white"
+                          >
+                            {tag} ×
+                          </button>
+                        ))}
+                      </div>
+                    ) : null}
+                    <datalist id="asset-search-tag-list">
+                      {tagSuggestions.map((tag) => (
+                        <option key={tag} value={tag} />
+                      ))}
+                    </datalist>
+                  </div>
+                ) : null}
+              </th>
               <th>
                 <input
                   className="col-filter-input"

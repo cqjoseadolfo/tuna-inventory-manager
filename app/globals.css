@@ -29,6 +29,19 @@ body {
     overflow-x: hidden;
 }
 
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Prevent browser auto-zoom when focusing small form controls on mobile keyboards. */
+@media (max-width: 768px) {
+    input,
+    select,
+    textarea {
+        font-size: 16px;
+    }
+}
+
 .app-shell,
 .loading-screen {
     min-height: 100vh;

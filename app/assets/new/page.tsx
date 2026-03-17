@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import AssetEntryForm from "@/components/AssetEntryForm";
+import AppHamburgerMenu from "@/components/AppHamburgerMenu";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 export default function NewAssetPage() {
@@ -33,6 +34,7 @@ export default function NewAssetPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
+      <AppHamburgerMenu />
       <section className="w-full max-w-xl space-y-4">
         <div className="flex items-center justify-between pt-1">
           <div>

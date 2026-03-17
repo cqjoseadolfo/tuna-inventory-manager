@@ -569,7 +569,7 @@ export default function Dashboard() {
                       type="text"
                       value={editForm.name}
                       onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                     />
                   </div>
 
@@ -579,7 +579,7 @@ export default function Dashboard() {
                       type="text"
                       value={editForm.photoUrl}
                       onChange={(event) => setEditForm((prev) => ({ ...prev, photoUrl: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                     />
                   </div>
 
@@ -590,7 +590,7 @@ export default function Dashboard() {
                         type="number"
                         value={editForm.fabricationYear}
                         onChange={(event) => setEditForm((prev) => ({ ...prev, fabricationYear: event.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                       />
                     </div>
                     <div>
@@ -600,7 +600,7 @@ export default function Dashboard() {
                         step="0.01"
                         value={editForm.currentValue}
                         onChange={(event) => setEditForm((prev) => ({ ...prev, currentValue: event.target.value }))}
-                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                       />
                     </div>
                   </div>
@@ -610,7 +610,7 @@ export default function Dashboard() {
                     <select
                       value={editForm.status}
                       onChange={(event) => setEditForm((prev) => ({ ...prev, status: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                     >
                       {assetStatuses.map((item) => (
                         <option key={item.code} value={item.code}>{item.label}</option>
@@ -624,7 +624,7 @@ export default function Dashboard() {
                       rows={3}
                       value={editForm.notes}
                       onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                     />
                   </div>
 
@@ -636,7 +636,7 @@ export default function Dashboard() {
                           type="text"
                           value={editForm.instrumentType}
                           onChange={(event) => setEditForm((prev) => ({ ...prev, instrumentType: event.target.value }))}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                         />
                       </div>
                       <div>
@@ -645,7 +645,7 @@ export default function Dashboard() {
                           type="text"
                           value={editForm.brand}
                           onChange={(event) => setEditForm((prev) => ({ ...prev, brand: event.target.value }))}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                         />
                       </div>
                     </>
@@ -659,7 +659,7 @@ export default function Dashboard() {
                           type="text"
                           value={editForm.issuer}
                           onChange={(event) => setEditForm((prev) => ({ ...prev, issuer: event.target.value }))}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                         />
                       </div>
                       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -669,7 +669,7 @@ export default function Dashboard() {
                             type="date"
                             value={editForm.issueDate}
                             onChange={(event) => setEditForm((prev) => ({ ...prev, issueDate: event.target.value }))}
-                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                           />
                         </div>
                         <div>
@@ -678,7 +678,7 @@ export default function Dashboard() {
                             type="text"
                             value={editForm.documentType}
                             onChange={(event) => setEditForm((prev) => ({ ...prev, documentType: event.target.value }))}
-                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                           />
                         </div>
                       </div>
@@ -688,7 +688,7 @@ export default function Dashboard() {
                           type="text"
                           value={editForm.referenceCode}
                           onChange={(event) => setEditForm((prev) => ({ ...prev, referenceCode: event.target.value }))}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                         />
                       </div>
                     </>
@@ -702,11 +702,11 @@ export default function Dashboard() {
                           type="text"
                           value={editForm.size}
                           onChange={(event) => setEditForm((prev) => ({ ...prev, size: event.target.value }))}
-                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                         />
                       </div>
                       <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-700 md:text-sm">
                           <input
                             type="checkbox"
                             checked={editForm.hasCinta}
@@ -714,7 +714,7 @@ export default function Dashboard() {
                           />
                           Cinta
                         </label>
-                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-700 md:text-sm">
                           <input
                             type="checkbox"
                             checked={editForm.hasJubon}
@@ -722,7 +722,7 @@ export default function Dashboard() {
                           />
                           Jubón
                         </label>
-                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-700 md:text-sm">
                           <input
                             type="checkbox"
                             checked={editForm.hasGreguesco}
@@ -740,7 +740,7 @@ export default function Dashboard() {
                       type="text"
                       value={editForm.tagsInput}
                       onChange={(event) => setEditForm((prev) => ({ ...prev, tagsInput: event.target.value }))}
-                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-base text-slate-900 md:text-sm"
                     />
                   </div>
 

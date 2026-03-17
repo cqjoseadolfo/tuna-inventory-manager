@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
+import AppHamburgerMenu from "@/components/AppHamburgerMenu";
 import AssetRequestsPanel from "@/components/AssetRequestsPanel";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 
@@ -33,6 +34,7 @@ export default function RequestsPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
+      <AppHamburgerMenu />
       <section className="w-full max-w-5xl space-y-4">
         <div className="flex flex-col gap-4 rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100 md:flex-row md:items-center md:justify-between">
           <div>
@@ -40,7 +42,7 @@ export default function RequestsPage() {
             <h1 className="mt-1 text-3xl font-black text-slate-900">Gestión de solicitudes de activos</h1>
             <p className="mt-2 text-slate-500">Aprueba, rechaza, revisa o cancela movimientos pendientes.</p>
           </div>
-          <Link href="/" className="text-sm font-semibold text-slate-500 hover:text-slate-700">← Volver al inicio</Link>
+          <Link href="/" className="text-sm font-semibold text-slate-500 hover:text-slate-700">← Volver al panel</Link>
         </div>
 
         <AssetRequestsPanel userEmail={user.email} />

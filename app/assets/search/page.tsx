@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useAuth } from "@/app/context/AuthContext";
 import AssetSearch from "@/components/AssetSearch";
+import AppHamburgerMenu from "@/components/AppHamburgerMenu";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 export default function SearchAssetsPage() {
@@ -33,12 +34,12 @@ export default function SearchAssetsPage() {
 
   return (
     <main className="app-shell">
+      <AppHamburgerMenu />
       <section className="page-shell">
         <div className="page-header glass">
           <div>
             <p className="eyebrow">Consulta de activos</p>
             <h1 className="section-title">Buscar activo</h1>
-            <p className="muted-text">Busca por código, tipo, estado o etiquetas para ver el detalle.</p>
           </div>
           <Link href="/" className="text-link">← Volver al panel</Link>
         </div>
