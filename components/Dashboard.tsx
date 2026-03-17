@@ -113,6 +113,7 @@ export default function Dashboard() {
   const [editFeedback, setEditFeedback] = useState("");
   const [editForm, setEditForm] = useState<EditFormState>(emptyEditForm());
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const dismissedAcceptedRequestIdRef = useRef<string | null>(null);
 
   if (!user) return null;
 
@@ -193,11 +194,16 @@ export default function Dashboard() {
           return rightDate - leftDate;
         });
 
-      if (acceptedUnread.length > 0) {
-        setAcceptedNotice(acceptedUnread[0]);
-      } else {
-        setAcceptedNotice(null);
-      }
+      const newestUnreadAccepted = acceptedUnread.length > 0 ? acceptedUnread[0] : null;
+
+      setAcceptedNotice((previous: AssetRequestItem | null) => {
+        // Keep the current popup/form stable while the user is editing.
+        if (previous) return previous;
+        if (!newestUnreadAccepted) return null;
+        // If user skipped once in this home session, do not reopen until reload.
+        if (dismissedAcceptedRequestIdRef.current === newestUnreadAccepted.id) return null;
+        return newestUnreadAccepted;
+      });
     } catch {}
   };
 
@@ -312,7 +318,7 @@ export default function Dashboard() {
     return () => {
       isCancelled = true;
     };
-  }, [acceptedNotice, user?.email]);
+  }, [acceptedNotice?.id, acceptedNotice?.asset_id, user?.email]);
 
   const isMine = (item: AssetItem) => {
     const holder = String(item.holderEmail || "").toLowerCase().trim();
@@ -444,6 +450,16 @@ export default function Dashboard() {
       }
 
       setEditFeedback(data?.updated === false ? "No hubo cambios para guardar." : "Cambios guardados correctamente.");
+
+      // Once there is at least one persisted edit, this popup should not show again.
+      if (data?.updated !== false) {
+        await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
+        });
+      }
+
       await loadDashboardAssets();
 
       const params = new URLSearchParams();
@@ -487,6 +503,7 @@ export default function Dashboard() {
   };
 
   const closeAcceptedPopup = () => {
+    dismissedAcceptedRequestIdRef.current = acceptedNotice?.id || null;
     setAcceptedNotice(null);
     setAcceptedAsset(null);
     setAssetError("");
