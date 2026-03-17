@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { useRouter } from "next/navigation";
 
 type SearchResult = {
   id: string;
@@ -37,6 +38,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function AssetSearch() {
+  const router = useRouter();
   const [allItems, setAllItems] = useState<SearchResult[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -239,7 +241,20 @@ export default function AssetSearch() {
                   item.holderEmail ||
                   "—";
                 return (
-                  <tr key={item.id} className="assets-table-row">
+                  <tr
+                    key={item.id}
+                    className="assets-table-row"
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Ver detalle de ${item.name}`}
+                    onClick={() => router.push(`/assets/${item.id}`)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        router.push(`/assets/${item.id}`);
+                      }
+                    }}
+                  >
                     {/* Asset photo — click to enlarge */}
                     <td className="col-photo">
                       {item.photoUrl ? (
@@ -247,7 +262,10 @@ export default function AssetSearch() {
                           src={item.photoUrl}
                           alt={item.name}
                           className="grid-thumb"
-                          onClick={() => setLightboxUrl(item.photoUrl)}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setLightboxUrl(item.photoUrl);
+                          }}
                           onError={(e) => {
                             (e.currentTarget as HTMLImageElement).style.display = "none";
                             const next = e.currentTarget.nextElementSibling as HTMLElement | null;
@@ -320,7 +338,10 @@ export default function AssetSearch() {
                           <button
                             key={t}
                             className={`result-tag tag-btn${activeTags.has(t) ? " tag-pill-active" : ""}`}
-                            onClick={() => toggleTag(t)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleTag(t);
+                            }}
                           >
                             {t}
                           </button>
