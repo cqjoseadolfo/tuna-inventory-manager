@@ -39,6 +39,16 @@ type AcceptedAssetDetail = {
   has_jubon?: number | boolean | null;
   has_greguesco?: number | boolean | null;
   tags?: string[];
+  editLogs?: Array<{
+    id: string;
+    field_name: string;
+    old_value: string | null;
+    new_value: string | null;
+    edited_at: string;
+    editor_nickname?: string | null;
+    editor_name?: string | null;
+    editor_email?: string | null;
+  }>;
 };
 
 type EditFormState = {
@@ -240,6 +250,25 @@ export default function Dashboard() {
         if (isCancelled) return;
 
         const detail = data as AcceptedAssetDetail;
+        
+        // Si ya hay ediciones registradas, no mostrar popup editable, solo marcar como leído
+        const hasEdits = Array.isArray(detail.editLogs) && detail.editLogs.length > 0;
+        if (hasEdits) {
+          try {
+            await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
+            });
+          } catch {
+            // silenciar error
+          }
+          if (!isCancelled) {
+            setAcceptedNotice(null);
+          }
+          return;
+        }
+
         setAcceptedAsset(detail);
         setEditForm({
           name: String(detail.name || ""),

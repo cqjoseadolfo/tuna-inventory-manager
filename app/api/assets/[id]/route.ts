@@ -419,28 +419,6 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       throw error;
     }
 
-    try {
-      await db
-        .prepare(
-          `INSERT INTO asset_movements (id, asset_id, movement_type, from_user_id, to_user_id, notes, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?)`
-        )
-        .bind(
-          crypto.randomUUID(),
-          assetId,
-          "edicion",
-          actingUser.id,
-          actingUser.id,
-          `Campos editados: ${changes.map((item) => item.field).join(", ")}`,
-          now
-        )
-        .run();
-    } catch (error) {
-      if (!isMissingTableError(error, "asset_movements")) {
-        throw error;
-      }
-    }
-
     return NextResponse.json({ success: true, updated: true, changes });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Error interno" }, { status: 500 });
