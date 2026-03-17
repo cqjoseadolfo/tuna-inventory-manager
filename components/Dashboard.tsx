@@ -19,11 +19,73 @@ type AssetRequestItem = {
   isUnread?: boolean;
 };
 
+type AcceptedAssetDetail = {
+  id: string;
+  asset_type: string;
+  name?: string | null;
+  photo_url?: string | null;
+  fabrication_year?: number | null;
+  current_value?: number | null;
+  status?: string | null;
+  notes?: string | null;
+  instrument_type?: string | null;
+  brand?: string | null;
+  issuer?: string | null;
+  issue_date?: string | null;
+  document_type?: string | null;
+  reference_code?: string | null;
+  size?: string | null;
+  has_cinta?: number | boolean | null;
+  has_jubon?: number | boolean | null;
+  has_greguesco?: number | boolean | null;
+  tags?: string[];
+};
+
+type EditFormState = {
+  name: string;
+  photoUrl: string;
+  fabricationYear: string;
+  currentValue: string;
+  status: string;
+  notes: string;
+  instrumentType: string;
+  brand: string;
+  issuer: string;
+  issueDate: string;
+  documentType: string;
+  referenceCode: string;
+  size: string;
+  hasCinta: boolean;
+  hasJubon: boolean;
+  hasGreguesco: boolean;
+  tagsInput: string;
+};
+
 type DashboardFilter = "all" | "mine" | "requested";
 
 const DONUT_COLORS = ["#84cc16", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#3b82f6"];
 
 export default function Dashboard() {
+  const emptyEditForm = (): EditFormState => ({
+    name: "",
+    photoUrl: "",
+    fabricationYear: "",
+    currentValue: "",
+    status: "bajo_responsabilidad",
+    notes: "",
+    instrumentType: "",
+    brand: "",
+    issuer: "",
+    issueDate: "",
+    documentType: "",
+    referenceCode: "",
+    size: "",
+    hasCinta: false,
+    hasJubon: false,
+    hasGreguesco: false,
+    tagsInput: "",
+  });
+
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [planImageBroken, setPlanImageBroken] = useState(false);
@@ -34,6 +96,12 @@ export default function Dashboard() {
   const [incomingRequests, setIncomingRequests] = useState<AssetRequestItem[]>([]);
   const [unreadIncomingCount, setUnreadIncomingCount] = useState(0);
   const [acceptedNotice, setAcceptedNotice] = useState<AssetRequestItem | null>(null);
+  const [acceptedAsset, setAcceptedAsset] = useState<AcceptedAssetDetail | null>(null);
+  const [isLoadingAsset, setIsLoadingAsset] = useState(false);
+  const [assetError, setAssetError] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editFeedback, setEditFeedback] = useState("");
+  const [editForm, setEditForm] = useState<EditFormState>(emptyEditForm());
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
@@ -117,6 +185,8 @@ export default function Dashboard() {
 
       if (acceptedUnread.length > 0) {
         setAcceptedNotice(acceptedUnread[0]);
+      } else {
+        setAcceptedNotice(null);
       }
     } catch {}
   };
@@ -128,6 +198,92 @@ export default function Dashboard() {
   useEffect(() => {
     loadRequests();
   }, [user?.email]);
+
+  useEffect(() => {
+    if (!user?.email) return;
+
+    const intervalId = window.setInterval(() => {
+      loadRequests();
+    }, 8000);
+
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [user?.email]);
+
+  useEffect(() => {
+    if (!acceptedNotice?.asset_id) {
+      setAcceptedAsset(null);
+      setAssetError("");
+      setEditFeedback("");
+      setEditForm(emptyEditForm());
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadAsset = async () => {
+      setIsLoadingAsset(true);
+      setAssetError("");
+      setEditFeedback("");
+
+      try {
+        const params = new URLSearchParams();
+        params.set("viewerEmail", user.email);
+        const response = await fetch(`/api/assets/${acceptedNotice.asset_id}?${params.toString()}`);
+        const data = await response.json();
+
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || "No se pudo cargar el activo.");
+        }
+
+        if (isCancelled) return;
+
+        const detail = data as AcceptedAssetDetail;
+        setAcceptedAsset(detail);
+        setEditForm({
+          name: String(detail.name || ""),
+          photoUrl: String(detail.photo_url || ""),
+          fabricationYear:
+            detail.fabrication_year === null || detail.fabrication_year === undefined
+              ? ""
+              : String(detail.fabrication_year),
+          currentValue:
+            detail.current_value === null || detail.current_value === undefined
+              ? ""
+              : String(detail.current_value),
+          status: String(detail.status || "bajo_responsabilidad"),
+          notes: String(detail.notes || ""),
+          instrumentType: String(detail.instrument_type || ""),
+          brand: String(detail.brand || ""),
+          issuer: String(detail.issuer || ""),
+          issueDate: String(detail.issue_date || ""),
+          documentType: String(detail.document_type || ""),
+          referenceCode: String(detail.reference_code || ""),
+          size: String(detail.size || ""),
+          hasCinta: Boolean(detail.has_cinta),
+          hasJubon: Boolean(detail.has_jubon),
+          hasGreguesco: Boolean(detail.has_greguesco),
+          tagsInput: Array.isArray(detail.tags) ? detail.tags.join(", ") : "",
+        });
+      } catch (error: any) {
+        if (!isCancelled) {
+          setAcceptedAsset(null);
+          setAssetError(error?.message || "No se pudo cargar el activo.");
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsLoadingAsset(false);
+        }
+      }
+    };
+
+    loadAsset();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [acceptedNotice, user?.email]);
 
   const isMine = (item: AssetItem) => {
     const holder = String(item.holderEmail || "").toLowerCase().trim();
@@ -184,16 +340,86 @@ export default function Dashboard() {
 
   const markRequestRead = async (requestId: string) => {
     try {
-      await fetch(`/api/asset-requests/${requestId}`, {
+      const response = await fetch(`/api/asset-requests/${requestId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
       });
+
+      const data = await response.json();
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error || "No se pudo marcar la solicitud como leída.");
+      }
+
       setAcceptedNotice(null);
+      setAcceptedAsset(null);
+      setEditForm(emptyEditForm());
       await loadRequests();
+      return true;
     } catch {
-      setAcceptedNotice(null);
+      return false;
     }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!acceptedAsset?.id || !acceptedNotice?.id || !user?.email) return;
+    setIsSavingEdit(true);
+    setEditFeedback("");
+
+    try {
+      const tags = editForm.tagsInput
+        .split(",")
+        .map((item: string) => String(item || "").trim())
+        .filter(Boolean);
+
+      const payload = {
+        actingUserEmail: user.email,
+        name: editForm.name,
+        photoUrl: editForm.photoUrl,
+        fabricationYear: editForm.fabricationYear ? Number(editForm.fabricationYear) : null,
+        currentValue: editForm.currentValue ? Number(editForm.currentValue) : null,
+        status: editForm.status,
+        notes: editForm.notes,
+        instrumentType: editForm.instrumentType,
+        brand: editForm.brand,
+        issuer: editForm.issuer,
+        issueDate: editForm.issueDate,
+        documentType: editForm.documentType,
+        referenceCode: editForm.referenceCode,
+        size: editForm.size,
+        hasCinta: editForm.hasCinta,
+        hasJubon: editForm.hasJubon,
+        hasGreguesco: editForm.hasGreguesco,
+        tags,
+      };
+
+      const response = await fetch(`/api/assets/${acceptedAsset.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error || "No se pudo guardar la edición.");
+      }
+
+      setEditFeedback("Cambios guardados correctamente.");
+      await loadDashboardAssets();
+      await markRequestRead(acceptedNotice.id);
+    } catch (error: any) {
+      setEditFeedback(error?.message || "No se pudo guardar la edición.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  const closeAcceptedPopup = () => {
+    setAcceptedNotice(null);
+    setAcceptedAsset(null);
+    setAssetError("");
+    setEditFeedback("");
+    setEditForm(emptyEditForm());
   };
 
   return (
@@ -216,30 +442,254 @@ export default function Dashboard() {
       {isMenuOpen && <div className="fixed inset-0 z-40 bg-slate-950/55" aria-hidden="true"></div>}
 
       {acceptedNotice ? (
-        <div className="fixed inset-0 z-[55] grid place-items-center bg-slate-950/50 px-4" role="dialog" aria-modal="true">
-          <div className="w-full max-w-md rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Solicitud aceptada</p>
-            <h3 className="mt-2 text-2xl font-black text-slate-900">🔔 Ya eres responsable del activo</h3>
-            <p className="mt-2 text-sm text-slate-600">
-              Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Puedes editar sus campos ahora.
-            </p>
+        <div className="fixed inset-0 z-[55] grid place-items-center overflow-y-auto bg-slate-950/50 px-4 py-6" role="dialog" aria-modal="true">
+          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
+            {isLoadingAsset ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-lime-500" />
+              </div>
+            ) : assetError ? (
+              <div className="py-6">
+                <p className="text-sm text-rose-600">{assetError}</p>
+                <div className="mt-4 flex gap-2">
+                  <button
+                    type="button"
+                    className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
+                    onClick={closeAcceptedPopup}
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            ) : acceptedAsset ? (
+              <>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Solicitud aceptada</p>
+                  <h3 className="mt-2 text-2xl font-black text-slate-900">🔔 Ya eres responsable del activo</h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Edita los campos que necesites.
+                  </p>
+                </div>
 
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Link
-                href={`/assets/${acceptedNotice.asset_id}?edit=1`}
-                className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white"
-                onClick={() => markRequestRead(acceptedNotice.id)}
-              >
-                Editar activo
-              </Link>
-              <button
-                type="button"
-                className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
-                onClick={() => markRequestRead(acceptedNotice.id)}
-              >
-                Marcar leída
-              </button>
-            </div>
+                <div className="mt-5 max-h-[60vh] space-y-3 overflow-y-auto pr-2">
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre</label>
+                    <input
+                      type="text"
+                      value={editForm.name}
+                      onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">URL de foto</label>
+                    <input
+                      type="text"
+                      value={editForm.photoUrl}
+                      onChange={(event) => setEditForm((prev) => ({ ...prev, photoUrl: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Año de fabricación</label>
+                      <input
+                        type="number"
+                        value={editForm.fabricationYear}
+                        onChange={(event) => setEditForm((prev) => ({ ...prev, fabricationYear: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Valor actual</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={editForm.currentValue}
+                        onChange={(event) => setEditForm((prev) => ({ ...prev, currentValue: event.target.value }))}
+                        className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Estado</label>
+                    <select
+                      value={editForm.status}
+                      onChange={(event) => setEditForm((prev) => ({ ...prev, status: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                    >
+                      <option value="bajo_responsabilidad">Bajo responsabilidad</option>
+                      <option value="en_reparacion">En reparación</option>
+                      <option value="baja">Baja</option>
+                      <option value="disponible">Disponible</option>
+                      <option value="solicitado">Solicitado</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Notas</label>
+                    <textarea
+                      rows={3}
+                      value={editForm.notes}
+                      onChange={(event) => setEditForm((prev) => ({ ...prev, notes: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                    />
+                  </div>
+
+                  {acceptedAsset.asset_type === "instrumento" ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de instrumento</label>
+                        <input
+                          type="text"
+                          value={editForm.instrumentType}
+                          onChange={(event) => setEditForm((prev) => ({ ...prev, instrumentType: event.target.value }))}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Marca</label>
+                        <input
+                          type="text"
+                          value={editForm.brand}
+                          onChange={(event) => setEditForm((prev) => ({ ...prev, brand: event.target.value }))}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        />
+                      </div>
+                    </>
+                  ) : null}
+
+                  {acceptedAsset.asset_type === "reconocimiento" ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Emisor</label>
+                        <input
+                          type="text"
+                          value={editForm.issuer}
+                          onChange={(event) => setEditForm((prev) => ({ ...prev, issuer: event.target.value }))}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Fecha de emisión</label>
+                          <input
+                            type="date"
+                            value={editForm.issueDate}
+                            onChange={(event) => setEditForm((prev) => ({ ...prev, issueDate: event.target.value }))}
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Tipo de documento</label>
+                          <input
+                            type="text"
+                            value={editForm.documentType}
+                            onChange={(event) => setEditForm((prev) => ({ ...prev, documentType: event.target.value }))}
+                            className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Código de referencia</label>
+                        <input
+                          type="text"
+                          value={editForm.referenceCode}
+                          onChange={(event) => setEditForm((prev) => ({ ...prev, referenceCode: event.target.value }))}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        />
+                      </div>
+                    </>
+                  ) : null}
+
+                  {acceptedAsset.asset_type === "uniforme" ? (
+                    <>
+                      <div>
+                        <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Talla</label>
+                        <input
+                          type="text"
+                          value={editForm.size}
+                          onChange={(event) => setEditForm((prev) => ({ ...prev, size: event.target.value }))}
+                          className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                        />
+                      </div>
+                      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={editForm.hasCinta}
+                            onChange={(event) => setEditForm((prev) => ({ ...prev, hasCinta: event.target.checked }))}
+                          />
+                          Cinta
+                        </label>
+                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={editForm.hasJubon}
+                            onChange={(event) => setEditForm((prev) => ({ ...prev, hasJubon: event.target.checked }))}
+                          />
+                          Jubón
+                        </label>
+                        <label className="flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={editForm.hasGreguesco}
+                            onChange={(event) => setEditForm((prev) => ({ ...prev, hasGreguesco: event.target.checked }))}
+                          />
+                          Gregüesco
+                        </label>
+                      </div>
+                    </>
+                  ) : null}
+
+                  <div>
+                    <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Etiquetas (coma separada)</label>
+                    <input
+                      type="text"
+                      value={editForm.tagsInput}
+                      onChange={(event) => setEditForm((prev) => ({ ...prev, tagsInput: event.target.value }))}
+                      className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
+                    />
+                  </div>
+
+                  {editFeedback ? (
+                    <p className={`text-sm ${editFeedback.includes("correctamente") ? "text-lime-600" : "text-rose-600"}`}>
+                      {editFeedback}
+                    </p>
+                  ) : null}
+                </div>
+
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    onClick={handleSaveEdit}
+                    className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {isSavingEdit ? "Guardando..." : "Guardar cambios"}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 disabled:opacity-60"
+                    onClick={closeAcceptedPopup}
+                  >
+                    Ahora no
+                  </button>
+                  <button
+                    type="button"
+                    disabled={isSavingEdit}
+                    className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 disabled:opacity-60"
+                    onClick={() => markRequestRead(acceptedNotice.id)}
+                  >
+                    Marcar leída
+                  </button>
+                </div>
+              </>
+            ) : null}
           </div>
         </div>
       ) : null}
