@@ -86,8 +86,8 @@ export default function AssetMovementDetailPage() {
       <section className="w-full max-w-3xl space-y-4">
         <PageHeader
           title="Detalle del movimiento"
-          backHref={`/assets/${id}/history`}
-          backLabel="Volver al histórico"
+          backHref={`/assets/${id}`}
+          backLabel="Volver a la ficha del activo"
         />
 
         {error ? (

@@ -118,15 +118,6 @@ export default function AssetSearch() {
     });
   }, [allItems, filterName, filterType, filterStatus, filterHolder, activeTags]);
 
-  const toggleTag = (tag: string) => {
-    setActiveTags((prev) => {
-      const next = new Set(prev);
-      if (next.has(tag)) next.delete(tag);
-      else next.add(tag);
-      return next;
-    });
-  };
-
   const addTagFilter = (tag: string) => {
     const normalized = String(tag || "").trim();
     if (!normalized) return;
@@ -170,6 +161,16 @@ export default function AssetSearch() {
   };
 
   const hasFilters = !!(filterName || filterType || filterStatus || filterHolder || activeTags.size > 0);
+
+  const isDirectRenderableUrl = (url: string) =>
+    url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:");
+
+  const resolveAssetImageUrl = (url?: string | null) => {
+    const source = String(url || "").trim();
+    if (!source) return "";
+    if (isDirectRenderableUrl(source)) return source;
+    return `/api/ui/asset-image?url=${encodeURIComponent(source)}`;
+  };
 
   return (
     <section className="asset-panel glass">
@@ -279,7 +280,6 @@ export default function AssetSearch() {
                   onChange={(e) => setFilterHolder(e.target.value)}
                 />
               </th>
-              <th />
             </tr>
             {/* Column headers */}
             <tr className="assets-table-head">
@@ -288,19 +288,18 @@ export default function AssetSearch() {
               <th>Tipo</th>
               <th>Estado</th>
               <th>Responsable</th>
-              <th>Tags</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="table-placeholder">
+                <td colSpan={5} className="table-placeholder">
                   <div className="loading-spinner" style={{ margin: "0 auto" }} />
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="table-placeholder">
+                <td colSpan={5} className="table-placeholder">
                   {hasFilters
                     ? "Ningún activo coincide con los filtros."
                     : "Sin activos registrados aún."}
@@ -333,7 +332,8 @@ export default function AssetSearch() {
                     <td className="col-photo">
                       {item.photoUrl ? (
                         <img
-                          src={item.photoUrl}
+                          src={resolveAssetImageUrl(item.photoUrl)}
+                          data-original-src={item.photoUrl}
                           alt={item.name}
                           className="grid-thumb"
                           onClick={(event) => {
@@ -341,8 +341,14 @@ export default function AssetSearch() {
                             setLightboxUrl(item.photoUrl);
                           }}
                           onError={(e) => {
-                            (e.currentTarget as HTMLImageElement).style.display = "none";
-                            const next = e.currentTarget.nextElementSibling as HTMLElement | null;
+                            const image = e.currentTarget as HTMLImageElement;
+                            const originalSrc = image.dataset.originalSrc || "";
+                            if (originalSrc && image.src !== originalSrc) {
+                              image.src = originalSrc;
+                              return;
+                            }
+                            image.style.display = "none";
+                            const next = image.nextElementSibling as HTMLElement | null;
                             if (next) next.style.display = "flex";
                           }}
                         />
@@ -370,6 +376,7 @@ export default function AssetSearch() {
                             .join(" · ")}
                         </span>
                       )}
+                      <span className="sr-only">{(item.tags || []).join(" ")}</span>
                     </td>
 
                     {/* Type badge */}
@@ -404,24 +411,6 @@ export default function AssetSearch() {
                         <span>{holder}</span>
                       </div>
                     </td>
-
-                    {/* Tags — clickable pills */}
-                    <td className="col-tags">
-                      <div className="row-tags">
-                        {item.tags?.map((t) => (
-                          <button
-                            key={t}
-                            className={`result-tag tag-btn${activeTags.has(t) ? " tag-pill-active" : ""}`}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleTag(t);
-                            }}
-                          >
-                            {t}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
                   </tr>
                 );
               })
@@ -440,10 +429,18 @@ export default function AssetSearch() {
         >
           <button className="lightbox-close" onClick={() => setLightboxUrl(null)}>✕</button>
           <img
-            src={lightboxUrl}
+            src={resolveAssetImageUrl(lightboxUrl)}
+            data-original-src={lightboxUrl}
             alt="Vista ampliada"
             className="lightbox-img"
             onClick={(e) => e.stopPropagation()}
+            onError={(event) => {
+              const image = event.currentTarget as HTMLImageElement;
+              const originalSrc = image.dataset.originalSrc || "";
+              if (originalSrc && image.src !== originalSrc) {
+                image.src = originalSrc;
+              }
+            }}
           />
         </div>
       )}

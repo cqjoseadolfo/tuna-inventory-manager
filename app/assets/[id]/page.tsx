@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/app/context/AuthContext";
 import PageHeader from "@/components/PageHeader";
 
@@ -123,13 +123,6 @@ const typeLabel: Record<AssetType, string> = {
   otro: "Otro",
 };
 
-const typeEmoji: Record<AssetType, string> = {
-  instrumento: "🎸",
-  reconocimiento: "🏆",
-  uniforme: "👘",
-  otro: "📦",
-};
-
 function DetailRow({ label, value }: { label: string; value?: string | number | null }) {
   if (!value && value !== 0) return null;
   return (
@@ -142,6 +135,7 @@ function DetailRow({ label, value }: { label: string; value?: string | number | 
 
 export default function AssetDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const { user } = useAuth();
   const [asset, setAsset] = useState<AssetDetail | null>(null);
@@ -152,7 +146,7 @@ export default function AssetDetailPage() {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFeedback, setEditFeedback] = useState("");
-  const [visibleMovementCount, setVisibleMovementCount] = useState(6);
+  const [movementFilter, setMovementFilter] = useState("");
   const [visibleEditLogCount, setVisibleEditLogCount] = useState(6);
   const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
@@ -195,7 +189,6 @@ export default function AssetDetailPage() {
         throw new Error(data.error || "No se pudo cargar el activo.");
       }
       setAsset(data);
-      setVisibleMovementCount(6);
       setVisibleEditLogCount(6);
       setEditForm({
         name: data.name || "",
@@ -275,58 +268,31 @@ export default function AssetDetailPage() {
         minute: "2-digit",
       })
     : "—";
-  const movementItems = [
-    {
-      id: `created-${asset.id}`,
-      type: "Creacion",
-      description: "Activo registrado en el sistema.",
-      date: createdAtLabel,
-      sortDate: asset.created_at || "",
-    },
-    ...((asset.movements || [])
-      .filter((movement) => movement.movement_type !== "creacion")
-      .map((movement) => {
-        const fromDisplay = movement.from_nickname || movement.from_name || movement.from_email || "sin responsable";
-        const toDisplay = movement.to_nickname || movement.to_name || movement.to_email || "sin responsable";
-        const typeMap: Record<string, string> = {
-          solicitud: "Solicitud",
-          traspaso: "Traspaso",
-          aprobacion_traspaso: "Aprobación",
-          recepcion: "Recepción",
-          rechazo: "Rechazo",
-          cancelacion: "Cancelación",
-          edicion: "Edición",
-        };
-        const descriptionMap: Record<string, string> = {
-          solicitud: `${toDisplay} solicitó este activo a ${fromDisplay}.`,
-          traspaso: `${fromDisplay} cedió este activo a ${toDisplay}.`,
-          aprobacion_traspaso: `${fromDisplay} aceptó la solicitud; pendiente recepción de ${toDisplay}.`,
-          recepcion: `${toDisplay} confirmó recepción y asumió el activo.`,
-          rechazo: `${fromDisplay} rechazó la solicitud de ${toDisplay}.`,
-          cancelacion: `${toDisplay} canceló la solicitud de este activo.`,
-          edicion: `Se editaron campos del activo por ${toDisplay}.`,
-        };
+  const typeMap: Record<string, string> = {
+    solicitud: "Solicitud",
+    traspaso: "Traspaso",
+    aprobacion_traspaso: "Aprobación",
+    recepcion: "Recepción",
+    rechazo: "Rechazo",
+    cancelacion: "Cancelación",
+    edicion: "Edición",
+  };
 
-        return {
-          id: movement.id,
-          type: typeMap[movement.movement_type] || movement.movement_type,
-          description: movement.notes || descriptionMap[movement.movement_type] || "Movimiento registrado.",
-          date: movement.created_at
-            ? new Date(movement.created_at).toLocaleString("es-PE", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "—",
-          sortDate: movement.created_at || "",
-        };
-      })),
-  ].sort((left, right) => new Date(right.sortDate).getTime() - new Date(left.sortDate).getTime());
-  const movementVisibleLimit = Math.min(20, movementItems.length);
-  const movementItemsVisible = movementItems.slice(0, visibleMovementCount);
-  const canLoadMoreMovements = visibleMovementCount < movementVisibleLimit;
+  const movementRows = (asset.movements || [])
+    .filter((movement) => movement.movement_type !== "creacion")
+    .filter((movement) => {
+      const q = movementFilter.trim().toLowerCase();
+      if (!q) return true;
+      const from = movement.from_nickname || movement.from_name || movement.from_email || "";
+      const to = movement.to_nickname || movement.to_name || movement.to_email || "";
+      const detail = movement.notes || `${from} → ${to}`;
+      return (
+        String(movement.movement_type || "").toLowerCase().includes(q)
+        || String(detail || "").toLowerCase().includes(q)
+        || from.toLowerCase().includes(q)
+        || to.toLowerCase().includes(q)
+      );
+    });
 
   const editLogsAll = Array.isArray(asset.editLogs) ? asset.editLogs : [];
   const editLogsVisibleLimit = Math.min(20, editLogsAll.length);
@@ -634,53 +600,67 @@ export default function AssetDetailPage() {
           {editFeedback ? <p className="mt-2 text-sm text-slate-600">{editFeedback}</p> : null}
         </div>
 
-        {/* Tags */}
-        {asset.tags.length > 0 && (
-          <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-            <h2 className="mb-3 text-lg font-bold text-slate-900">Etiquetas</h2>
-            <div className="flex flex-wrap gap-2">
-              {asset.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600 ring-1 ring-slate-200">
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Movement log */}
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Registro de movimientos</h2>
-          {movementItems.length > 0 ? (
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <h2 className="text-lg font-bold text-slate-900">Registro de movimientos</h2>
+            <input
+              value={movementFilter}
+              onChange={(event) => setMovementFilter(event.target.value)}
+              placeholder="Filtrar en esta página"
+              className="w-full rounded-xl border border-slate-200 px-3 py-2 text-base text-slate-900 sm:w-64 md:text-sm"
+            />
+          </div>
+
+          {movementRows.length > 0 ? (
             <>
-              <ul className="space-y-3">
-                {movementItemsVisible.map((movement) => (
-                <li key={movement.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-lime-700">{movement.type}</p>
-                  <p className="mt-1 text-sm font-medium text-slate-700">{movement.description}</p>
-                  <p className="mt-1 text-xs text-slate-500">{movement.date}</p>
-                </li>
-                ))}
-              </ul>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {canLoadMoreMovements ? (
-                  <button
-                    type="button"
-                    onClick={() => setVisibleMovementCount(20)}
-                    className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
-                  >
-                    Cargar más
-                  </button>
-                ) : null}
-                {(asset.movementPagination?.hasMore || Number(asset.movementPagination?.total || 0) > 20) ? (
-                  <Link
-                    href={`/assets/${asset.id}/history`}
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    Ver histórico completo
-                  </Link>
-                ) : null}
+              <div className="max-h-[420px] w-full overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200">
+                <table className="w-full table-fixed text-left text-sm">
+                  <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="w-[24%] px-3 py-2">Tipo</th>
+                      <th className="w-[48%] px-3 py-2">Detalle</th>
+                      <th className="w-[28%] px-3 py-2">Fecha</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movementRows.map((row) => {
+                      const from = row.from_nickname || row.from_name || row.from_email || "sin responsable";
+                      const to = row.to_nickname || row.to_name || row.to_email || "sin responsable";
+                      const label = `${from} → ${to}`;
+                      const detail = row.notes || label;
+                      return (
+                        <tr
+                          key={row.id}
+                          className="cursor-pointer border-t border-slate-100 align-top transition hover:bg-slate-50 focus-within:bg-slate-50"
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Ver detalle del movimiento ${row.movement_type}`}
+                          onClick={() => router.push(`/assets/${asset.id}/history/movements/${row.id}`)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              router.push(`/assets/${asset.id}/history/movements/${row.id}`);
+                            }
+                          }}
+                        >
+                          <td className="px-3 py-2 font-semibold text-slate-700">
+                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={typeMap[row.movement_type] || row.movement_type}>{typeMap[row.movement_type] || row.movement_type}</span>
+                          </td>
+                          <td className="px-3 py-2 text-slate-700">
+                            <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium" title={detail}>{detail}</p>
+                            <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500" title={label}>{label}</p>
+                          </td>
+                          <td className="px-3 py-2 text-xs text-slate-500">
+                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={new Date(row.created_at).toLocaleString("es-PE")}>{new Date(row.created_at).toLocaleString("es-PE")}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+              <p className="mt-2 text-xs text-slate-500">Toca un registro para ver el detalle completo.</p>
             </>
           ) : (
             <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">

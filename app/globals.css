@@ -874,13 +874,14 @@ html {
 }
 
 .assets-table-wrap {
-    overflow-x: auto;
+    overflow-x: hidden;
     border-radius: 0.75rem;
     border: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .assets-table {
     width: 100%;
+    table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
 }
@@ -925,9 +926,10 @@ html {
 }
 
 .assets-table-row td {
-    padding: 0.6rem 0.75rem;
+    padding: 0.55rem 0.65rem;
     border-bottom: 1px solid rgba(148, 163, 184, 0.1);
     vertical-align: middle;
+    overflow: hidden;
 }
 
 .assets-table-row:last-child td {
@@ -940,12 +942,12 @@ html {
 
 .col-th-photo,
 .col-photo {
-    width: 68px;
+    width: 62px;
 }
 
 .grid-thumb {
-    width: 54px;
-    height: 54px;
+    width: 44px;
+    height: 44px;
     object-fit: cover;
     border-radius: 0.5rem;
     border: 1px solid rgba(148, 163, 184, 0.2);
@@ -960,8 +962,8 @@ html {
 }
 
 .grid-thumb-empty {
-    width: 54px;
-    height: 54px;
+    width: 44px;
+    height: 44px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -972,7 +974,7 @@ html {
 }
 
 .col-name {
-    min-width: 160px;
+    min-width: 0;
 }
 
 .asset-name {
@@ -980,6 +982,9 @@ html {
     font-weight: 600;
     color: var(--text-primary);
     font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .asset-notes {
@@ -987,7 +992,6 @@ html {
     color: var(--text-secondary);
     font-size: 0.78rem;
     margin-top: 0.15rem;
-    max-width: 240px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -997,7 +1001,7 @@ html {
     white-space: nowrap;
     color: #cbd5e1;
     font-size: 0.88rem;
-    min-width: 120px;
+    min-width: 0;
 }
 
 .holder-cell {
@@ -1005,6 +1009,12 @@ html {
     align-items: center;
     gap: 0.5rem;
     white-space: nowrap;
+    min-width: 0;
+}
+
+.holder-cell span {
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .holder-avatar {
@@ -1031,16 +1041,24 @@ html {
     flex-shrink: 0;
 }
 
-.col-tags {
-    min-width: 220px;
-    max-width: 320px;
+.assets-table thead th:nth-child(2),
+.assets-table tbody td:nth-child(2) {
+    width: 38%;
 }
 
-.row-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.3rem;
-    max-width: 300px;
+.assets-table thead th:nth-child(3),
+.assets-table tbody td:nth-child(3) {
+    width: 18%;
+}
+
+.assets-table thead th:nth-child(4),
+.assets-table tbody td:nth-child(4) {
+    width: 18%;
+}
+
+.assets-table thead th:nth-child(5),
+.assets-table tbody td:nth-child(5) {
+    width: 22%;
 }
 
 /* Photo lightbox */
