@@ -93,7 +93,7 @@ export async function GET(request: Request) {
         holder.nickname AS holder_nickname,
         holder.email AS holder_email,
         holder.full_name AS holder_name,
-        holder.picture AS holder_picture,
+        COALESCE(holder.profile_picture_url, holder.picture) AS holder_picture,
         a.created_at,
         i.instrument_type,
         i.brand,

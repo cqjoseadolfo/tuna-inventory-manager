@@ -9,6 +9,13 @@ export interface UserProfile {
   email: string;
   picture: string;
   nickname?: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  birthDate?: string | null;
+  dni?: string | null;
+  baptismDate?: string | null;
+  bio?: string | null;
+  profession?: string | null;
   isNewUser?: boolean;
   token?: string;
   sessionId?: string;
@@ -20,6 +27,7 @@ interface AuthContextType {
   login: () => void;
   logout: () => void;
   completeOnboarding: (nickname: string) => void;
+  updateUserProfile: (payload: Partial<UserProfile>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -104,6 +112,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: syncData.user.email,
         picture: syncData.user.picture,
         nickname: syncData.user.nickname,
+        firstName: syncData.user.firstName || null,
+        lastName: syncData.user.lastName || null,
+        birthDate: syncData.user.birthDate || null,
+        dni: syncData.user.dni || null,
+        baptismDate: syncData.user.baptismDate || null,
+        bio: syncData.user.bio || null,
+        profession: syncData.user.profession || null,
         isNewUser: syncData.isNewUser || !syncData.user.nickname,
         sessionId: syncData.sessionId,
         token: accessToken,
@@ -125,6 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("tuna-auth-user", JSON.stringify(updatedUser));
   };
 
+  const updateUserProfile = (payload: Partial<UserProfile>) => {
+    setUser((prev) => {
+      if (!prev) return prev;
+      const next = { ...prev, ...payload };
+      localStorage.setItem("tuna-auth-user", JSON.stringify(next));
+      return next;
+    });
+  };
+
   const login = () => {
     if (tokenClient) {
       tokenClient.requestAccessToken();
@@ -144,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, completeOnboarding }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, completeOnboarding, updateUserProfile }}>
       {children}
     </AuthContext.Provider>
   );

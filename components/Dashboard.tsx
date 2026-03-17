@@ -125,6 +125,15 @@ export default function Dashboard() {
   if (!user) return null;
 
   const displayName = user.nickname?.trim() || user.name?.trim() || "músico";
+  const isDirectRenderableUrl = (url: string) =>
+    url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:");
+  const resolveUserImageUrl = (url?: string | null) => {
+    const source = String(url || "").trim();
+    if (!source) return "";
+    if (isDirectRenderableUrl(source)) return source;
+    return `/api/ui/asset-image?url=${encodeURIComponent(source)}`;
+  };
+  const profileImageUrl = resolveUserImageUrl(user.picture);
   const plan2026ImageUrl = "/api/ui/newsletter-image";
 
   const statusLabelMap = new Map(assetStatuses.map((item: AssetStatusOption) => [item.code, item.label]));
@@ -849,9 +858,23 @@ export default function Dashboard() {
         </aside>
       </div>
 
-      <section className="mb-5 pr-14 pt-4 md:pr-16">
-        <p className="text-base font-medium text-slate-600">Buenos días,</p>
-        <p className="text-[clamp(1.9rem,6vw,2.7rem)] font-black tracking-tight text-slate-900">{displayName} 👋</p>
+      <section className="mb-5 flex items-stretch gap-3 pr-14 pt-4 md:pr-16">
+        <div className="grid h-[84px] w-[84px] shrink-0 place-items-center overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
+          {profileImageUrl ? (
+            <img
+              src={profileImageUrl}
+              alt={displayName}
+              className="h-full w-full object-cover"
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <span className="text-2xl font-black text-slate-500">{displayName.charAt(0).toUpperCase()}</span>
+          )}
+        </div>
+        <div className="flex min-h-[84px] flex-col justify-center">
+          <p className="text-base font-medium text-slate-600">Buenos días,</p>
+          <p className="text-[clamp(1.9rem,6vw,2.7rem)] font-black tracking-tight text-slate-900">{displayName} 👋</p>
+        </div>
       </section>
 
       <main className="grid gap-5">

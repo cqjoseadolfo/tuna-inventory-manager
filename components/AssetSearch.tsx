@@ -313,6 +313,7 @@ export default function AssetSearch() {
                   item.holderName ||
                   item.holderEmail ||
                   "—";
+                const resolvedPhotoUrl = resolveAssetImageUrl(item.photoUrl);
                 return (
                   <tr
                     key={item.id}
@@ -330,15 +331,15 @@ export default function AssetSearch() {
                   >
                     {/* Asset photo — click to enlarge */}
                     <td className="col-photo">
-                      {item.photoUrl ? (
+                      {resolvedPhotoUrl ? (
                         <img
-                          src={resolveAssetImageUrl(item.photoUrl)}
+                          src={resolvedPhotoUrl}
                           data-original-src={item.photoUrl}
                           alt={item.name}
                           className="grid-thumb"
                           onClick={(event) => {
                             event.stopPropagation();
-                            setLightboxUrl(item.photoUrl);
+                            setLightboxUrl(resolvedPhotoUrl);
                           }}
                           onError={(e) => {
                             const image = e.currentTarget as HTMLImageElement;
@@ -355,7 +356,7 @@ export default function AssetSearch() {
                       ) : null}
                       <div
                         className="grid-thumb-empty"
-                        style={{ display: item.photoUrl ? "none" : "flex" }}
+                        style={{ display: resolvedPhotoUrl ? "none" : "flex" }}
                       >
                         📦
                       </div>
@@ -429,7 +430,7 @@ export default function AssetSearch() {
         >
           <button className="lightbox-close" onClick={() => setLightboxUrl(null)}>✕</button>
           <img
-            src={resolveAssetImageUrl(lightboxUrl)}
+            src={lightboxUrl}
             data-original-src={lightboxUrl}
             alt="Vista ampliada"
             className="lightbox-img"

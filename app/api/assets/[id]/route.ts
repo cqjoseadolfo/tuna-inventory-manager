@@ -44,7 +44,7 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
           holder.nickname  AS holder_nickname,
           holder.full_name AS holder_name,
           holder.email     AS holder_email,
-          holder.picture   AS holder_picture,
+          COALESCE(holder.profile_picture_url, holder.picture) AS holder_picture,
           i.instrument_type,
           i.brand,
           r.issuer,

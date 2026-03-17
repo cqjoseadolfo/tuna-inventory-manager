@@ -4,6 +4,14 @@ CREATE TABLE IF NOT EXISTS users (
     email TEXT UNIQUE NOT NULL,
     full_name TEXT,
     picture TEXT,
+    profile_picture_url TEXT,
+    first_name TEXT,
+    last_name TEXT,
+    birth_date TEXT,
+    dni TEXT,
+    baptism_date TEXT,
+    bio TEXT,
+    profession TEXT,
     nickname TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

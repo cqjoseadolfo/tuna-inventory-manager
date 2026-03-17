@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     console.log('Syncing user:', email);
 
     // 1. Check if user exists
-    let user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+    let user = await db.prepare('SELECT * FROM users WHERE email = ?').bind(email).first<any>();
     let isNewUser = false;
 
     // 2. If new user, insert them with null nickname
@@ -31,11 +31,19 @@ export async function POST(request: Request) {
       user = await db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first();
       isNewUser = true;
     } else {
-      // Opt: update name/picture in case they changed on Google's end
-      await db.prepare('UPDATE users SET full_name = ?, picture = ? WHERE email = ?')
-        .bind(name, picture, email)
+      // Keep Google image fresh, but do not overwrite profile fields maintained by user.
+      await db.prepare('UPDATE users SET picture = ? WHERE email = ?')
+        .bind(picture, email)
         .run();
-      user.full_name = name;
+
+      // If full_name is still empty, seed it with Google name.
+      if (!user.full_name && name) {
+        await db.prepare('UPDATE users SET full_name = ? WHERE email = ?')
+          .bind(name, email)
+          .run();
+        user.full_name = name;
+      }
+
       user.picture = picture;
     }
 
@@ -51,8 +59,15 @@ export async function POST(request: Request) {
         id: user.id,
         email: user.email,
         name: user.full_name,
-        picture: user.picture,
-        nickname: user.nickname
+        picture: user.profile_picture_url || user.picture,
+        nickname: user.nickname,
+        firstName: user.first_name || null,
+        lastName: user.last_name || null,
+        birthDate: user.birth_date || null,
+        dni: user.dni || null,
+        baptismDate: user.baptism_date || null,
+        bio: user.bio || null,
+        profession: user.profession || null
       },
       isNewUser,
       sessionId: logId

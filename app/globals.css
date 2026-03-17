@@ -876,47 +876,49 @@ html {
 .assets-table-wrap {
     max-width: 100%;
     overflow-x: auto;
-    overflow-y: hidden;
+    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
     scrollbar-gutter: stable both-edges;
-    border-radius: 0.75rem;
-    border: 1px solid rgba(148, 163, 184, 0.16);
+    max-height: 520px;
+    border-radius: 1rem;
+    border: 1px solid rgb(226 232 240);
+    background: #ffffff;
 }
 
 .assets-table {
     width: 100%;
-    min-width: 760px;
+    min-width: 920px;
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
 }
 
 .assets-table-head th {
-    background: rgba(15, 23, 42, 0.65);
+    background: rgb(248 250 252);
     padding: 0.6rem 0.75rem;
     text-align: left;
     font-size: 0.75rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: var(--text-secondary);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+    color: rgb(100 116 139);
+    border-bottom: 1px solid rgb(226 232 240);
     white-space: nowrap;
 }
 
 .assets-table-filters th {
-    background: rgba(11, 18, 37, 0.85);
+    background: rgb(248 250 252);
     padding: 0.45rem 0.5rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.12);
+    border-bottom: 1px solid rgb(226 232 240);
 }
 
 .col-filter-input {
     width: 100%;
-    background: rgba(30, 41, 59, 0.7);
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    background: #ffffff;
+    border: 1px solid rgb(203 213 225);
     border-radius: 0.45rem;
-    color: #e2e8f0;
+    color: rgb(15 23 42);
     padding: 0.38rem 0.55rem;
     font-size: 0.82rem;
     outline: none;
@@ -928,12 +930,12 @@ html {
 }
 
 .col-filter-input option {
-    background: #1e293b;
+    background: #ffffff;
 }
 
 .assets-table-row td {
     padding: 0.55rem 0.65rem;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.1);
+    border-bottom: 1px solid rgb(241 245 249);
     vertical-align: middle;
     overflow: hidden;
 }
@@ -943,20 +945,20 @@ html {
 }
 
 .assets-table-row:hover td {
-    background: rgba(37, 99, 235, 0.05);
+    background: rgb(248 250 252);
 }
 
 .col-th-photo,
 .col-photo {
-    width: 62px;
+    width: 112px;
 }
 
 .grid-thumb {
-    width: 44px;
-    height: 44px;
+    width: 80px;
+    height: 80px;
     object-fit: cover;
-    border-radius: 0.5rem;
-    border: 1px solid rgba(148, 163, 184, 0.2);
+    border-radius: 0.75rem;
+    border: 1px solid rgb(203 213 225);
     display: block;
     cursor: zoom-in;
     transition: opacity 0.15s ease, transform 0.15s ease;
@@ -968,15 +970,15 @@ html {
 }
 
 .grid-thumb-empty {
-    width: 44px;
-    height: 44px;
+    width: 80px;
+    height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(15, 23, 42, 0.5);
-    border-radius: 0.5rem;
-    border: 1px solid rgba(148, 163, 184, 0.18);
-    font-size: 1.3rem;
+    background: rgb(241 245 249);
+    border-radius: 0.75rem;
+    border: 1px solid rgb(203 213 225);
+    font-size: 1.1rem;
 }
 
 .col-name {
@@ -1005,7 +1007,7 @@ html {
 
 .col-holder {
     white-space: nowrap;
-    color: #cbd5e1;
+    color: rgb(71 85 105);
     font-size: 0.88rem;
     min-width: 0;
 }
@@ -1049,7 +1051,7 @@ html {
 
 .assets-table thead th:nth-child(2),
 .assets-table tbody td:nth-child(2) {
-    width: 38%;
+    width: 34%;
 }
 
 .assets-table thead th:nth-child(3),
@@ -1064,7 +1066,7 @@ html {
 
 .assets-table thead th:nth-child(5),
 .assets-table tbody td:nth-child(5) {
-    width: 22%;
+    width: 30%;
 }
 
 /* Photo lightbox */

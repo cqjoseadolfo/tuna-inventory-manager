@@ -63,7 +63,10 @@ export async function POST(request: Request) {
     })();
 
     const safeCode = assetCode.replace(/[^a-zA-Z0-9-_]/g, "-").slice(0, 60);
-    const key = `assets/${assetType}/${Date.now()}-${safeCode}.${ext}`;
+    const targetPrefix = assetType === "user" || assetType === "profile"
+      ? "user"
+      : `assets/${assetType}`;
+    const key = `${targetPrefix}/${Date.now()}-${safeCode}.${ext}`;
 
     const objectUrl = endpointOverride
       ? `${endpointOverride.replace(/\/$/, "")}/${bucket}/${key}`
