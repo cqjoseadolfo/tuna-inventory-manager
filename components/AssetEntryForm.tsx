@@ -203,7 +203,7 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
           photoId: uploadResult.id,
           fabricationYear: form.fabricationYear ? Number(form.fabricationYear) : null,
           currentValue: 0,
-          status: "bajo_responsabilidad",
+          status: "en_uso",
           notes: form.notes.trim() || null,
           tags: normalizedTags,
           createdByEmail,

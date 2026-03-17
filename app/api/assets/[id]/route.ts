@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruISOString } from "@/app/lib/time";
+import { getAssetStatusesFromDb, normalizeStatusCode } from "@/app/lib/assetStatus";
 
 export const runtime = "edge";
 
@@ -193,8 +194,22 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       return NextResponse.json({ error: "Activo no encontrado" }, { status: 404 });
     }
 
-    if (asset.holder_user_id !== actingUser.id) {
-      return NextResponse.json({ error: "Solo el responsable actual puede editar este activo" }, { status: 403 });
+    const pendingReceptionRequest = await db
+      .prepare(
+        `SELECT id
+         FROM asset_requests
+         WHERE asset_id = ? AND requester_user_id = ? AND status = 'aceptada'
+         ORDER BY created_at DESC
+         LIMIT 1`
+      )
+      .bind(assetId, actingUser.id)
+      .first<{ id: string }>();
+
+    const canEditAsCurrentHolder = asset.holder_user_id === actingUser.id;
+    const canEditAsPendingReceiver = !!pendingReceptionRequest?.id;
+
+    if (!canEditAsCurrentHolder && !canEditAsPendingReceiver) {
+      return NextResponse.json({ error: "Solo el responsable actual o receptor pendiente puede editar este activo" }, { status: 403 });
     }
 
     const now = getPeruISOString();
@@ -252,9 +267,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
     }
 
     if (Object.prototype.hasOwnProperty.call(body, "status")) {
-      const nextStatus = normalizeString(body?.status);
-      const allowedStatuses = ["disponible", "bajo_responsabilidad", "en_reparacion", "baja", "solicitado"];
-      if (nextStatus && allowedStatuses.includes(nextStatus) && nextStatus !== asset.status) {
+      const catalog = await getAssetStatusesFromDb(db);
+      const allowedStatuses = new Set(catalog.map((item) => item.code));
+      const nextStatus = normalizeStatusCode(String(body?.status || ""));
+      if (nextStatus && allowedStatuses.has(nextStatus) && nextStatus !== asset.status) {
         await db.prepare("UPDATE assets SET status = ? WHERE id = ?").bind(nextStatus, assetId).run();
         registerChange("status", asset.status, nextStatus);
         asset.status = nextStatus;
@@ -417,6 +433,45 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         return NextResponse.json({ error: "Falta la migración de logs de edición de activos en D1." }, { status: 500 });
       }
       throw error;
+    }
+
+    if (canEditAsPendingReceiver) {
+      await db
+        .prepare("UPDATE assets SET holder_user_id = ?, status = ? WHERE id = ?")
+        .bind(actingUser.id, "en_uso", assetId)
+        .run();
+
+      await db
+        .prepare(
+          `UPDATE asset_requests
+           SET status = 'completada', requester_read_at = ?
+           WHERE id = ?`
+        )
+        .bind(now, pendingReceptionRequest?.id)
+        .run();
+
+      try {
+        await db
+          .prepare(
+            `INSERT INTO asset_movements (id, asset_id, movement_type, from_user_id, to_user_id, request_id, notes, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(
+            crypto.randomUUID(),
+            assetId,
+            "recepcion",
+            asset.holder_user_id,
+            actingUser.id,
+            pendingReceptionRequest?.id || null,
+            "Recepcion confirmada y activo asumido por el nuevo responsable.",
+            now
+          )
+          .run();
+      } catch (error) {
+        if (!isMissingTableError(error, "asset_movements")) {
+          throw error;
+        }
+      }
     }
 
     return NextResponse.json({ success: true, updated: true, changes });

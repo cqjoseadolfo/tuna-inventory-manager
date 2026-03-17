@@ -25,9 +25,13 @@ type SearchResult = {
 
 const STATUS_LABELS: Record<string, string> = {
   disponible: "Disponible",
-  bajo_responsabilidad: "Bajo resp.",
+  en_uso: "En uso",
+  bajo_responsabilidad: "En uso",
   solicitado: "Solicitado",
   mantenimiento: "Mantenim.",
+  en_reparacion: "Mantenim.",
+  pendiente_recepcion: "Pend. recepción",
+  baja: "Baja",
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -82,7 +86,14 @@ export default function AssetSearch() {
     return allItems.filter((item) => {
       if (filterName && !item.name.toLowerCase().includes(filterName.toLowerCase())) return false;
       if (filterType && item.assetType !== filterType) return false;
-      if (filterStatus && item.status !== filterStatus) return false;
+      if (filterStatus) {
+        const normalizedStatus = item.status === "bajo_responsabilidad"
+          ? "en_uso"
+          : item.status === "en_reparacion"
+            ? "mantenimiento"
+            : item.status;
+        if (normalizedStatus !== filterStatus) return false;
+      }
       const holder = item.holderDisplayName || item.holderNickname || item.holderName || item.holderEmail || "";
       if (filterHolder && !holder.toLowerCase().includes(filterHolder.toLowerCase())) return false;
       if (activeTags.size > 0) {
@@ -192,9 +203,11 @@ export default function AssetSearch() {
                 >
                   <option value="">Todos</option>
                   <option value="disponible">Disponible</option>
-                  <option value="bajo_responsabilidad">Bajo resp.</option>
+                  <option value="en_uso">En uso</option>
                   <option value="solicitado">Solicitado</option>
                   <option value="mantenimiento">Mantenim.</option>
+                  <option value="pendiente_recepcion">Pend. recepción</option>
+                  <option value="baja">Baja</option>
                 </select>
               </th>
               <th>

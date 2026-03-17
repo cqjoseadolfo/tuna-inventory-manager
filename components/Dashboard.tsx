@@ -71,6 +71,11 @@ type EditFormState = {
   tagsInput: string;
 };
 
+type AssetStatusOption = {
+  code: string;
+  label: string;
+};
+
 type DashboardFilter = "all" | "mine" | "requested";
 
 const DONUT_COLORS = ["#84cc16", "#06b6d4", "#f59e0b", "#8b5cf6", "#f43f5e", "#14b8a6", "#3b82f6"];
@@ -81,7 +86,7 @@ export default function Dashboard() {
     photoUrl: "",
     fabricationYear: "",
     currentValue: "",
-    status: "bajo_responsabilidad",
+    status: "en_uso",
     notes: "",
     instrumentType: "",
     brand: "",
@@ -112,6 +117,7 @@ export default function Dashboard() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFeedback, setEditFeedback] = useState("");
   const [editForm, setEditForm] = useState<EditFormState>(emptyEditForm());
+  const [assetStatuses, setAssetStatuses] = useState<AssetStatusOption[]>([]);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const dismissedAcceptedRequestIdRef = useRef<string | null>(null);
 
@@ -119,6 +125,8 @@ export default function Dashboard() {
 
   const displayName = user.nickname?.trim() || user.name?.trim() || "músico";
   const plan2026ImageUrl = "/api/ui/newsletter-image";
+
+  const statusLabelMap = new Map(assetStatuses.map((item: AssetStatusOption) => [item.code, item.label]));
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -216,6 +224,30 @@ export default function Dashboard() {
   }, [user?.email]);
 
   useEffect(() => {
+    const loadStatuses = async () => {
+      try {
+        const response = await fetch("/api/asset-statuses");
+        const data = await response.json();
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || "No se pudieron cargar estados");
+        }
+        setAssetStatuses(Array.isArray(data?.items) ? data.items : []);
+      } catch {
+        setAssetStatuses([
+          { code: "en_uso", label: "En uso" },
+          { code: "disponible", label: "Disponible" },
+          { code: "solicitado", label: "Solicitado" },
+          { code: "pendiente_recepcion", label: "Pendiente de aceptar recepcion" },
+          { code: "mantenimiento", label: "Mantenimiento" },
+          { code: "baja", label: "Baja" },
+        ]);
+      }
+    };
+
+    loadStatuses();
+  }, []);
+
+  useEffect(() => {
     if (!user?.email) return;
 
     const intervalId = window.setInterval(() => {
@@ -257,9 +289,10 @@ export default function Dashboard() {
 
         const detail = data as AcceptedAssetDetail;
         
-        // Si ya hay ediciones registradas, no mostrar popup editable, solo marcar como leído
-        const hasEdits = Array.isArray(detail.editLogs) && detail.editLogs.length > 0;
-        if (hasEdits) {
+        // Solo cerrar el popup si el solicitante actual ya editó al menos una vez.
+        const hasCurrentUserEdits = Array.isArray(detail.editLogs)
+          && detail.editLogs.some((log) => String(log?.editor_email || "").toLowerCase() === user.email.toLowerCase());
+        if (hasCurrentUserEdits) {
           try {
             await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
               method: "POST",
@@ -287,7 +320,7 @@ export default function Dashboard() {
             detail.current_value === null || detail.current_value === undefined
               ? ""
               : String(detail.current_value),
-          status: String(detail.status || "bajo_responsabilidad"),
+          status: String(detail.status || "en_uso"),
           notes: String(detail.notes || ""),
           instrumentType: String(detail.instrument_type || ""),
           brand: String(detail.brand || ""),
@@ -322,7 +355,8 @@ export default function Dashboard() {
 
   const isMine = (item: AssetItem) => {
     const holder = String(item.holderEmail || "").toLowerCase().trim();
-    return item.status === "bajo_responsabilidad" && holder === user.email.toLowerCase().trim();
+    const normalizedStatus = String(item.status || "").toLowerCase();
+    return normalizedStatus === "en_uso" && holder === user.email.toLowerCase().trim();
   };
 
   const totalAssets = assets.length;
@@ -480,7 +514,7 @@ export default function Dashboard() {
             detail.current_value === null || detail.current_value === undefined
               ? ""
               : String(detail.current_value),
-          status: String(detail.status || "bajo_responsabilidad"),
+          status: String(detail.status || "en_uso"),
           notes: String(detail.notes || ""),
           instrumentType: String(detail.instrument_type || ""),
           brand: String(detail.brand || ""),
@@ -511,6 +545,34 @@ export default function Dashboard() {
     setEditForm(emptyEditForm());
   };
 
+  const confirmAcceptedRequest = async () => {
+    if (!acceptedNotice?.id || !user?.email || isSavingEdit) return;
+    setIsSavingEdit(true);
+    setEditFeedback("");
+
+    try {
+      const response = await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "confirm-receipt", actingUserEmail: user.email }),
+      });
+      const data = await response.json();
+      if (!response.ok || data?.error) {
+        throw new Error(data?.error || "No se pudo confirmar la recepción.");
+      }
+
+      setAcceptedNotice(null);
+      setAcceptedAsset(null);
+      setEditForm(emptyEditForm());
+      await loadDashboardAssets();
+      await loadRequests();
+    } catch (error: any) {
+      setEditFeedback(error?.message || "No se pudo confirmar la recepción.");
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
   return (
     <div className="relative w-full max-w-xl">
       <button
@@ -532,7 +594,7 @@ export default function Dashboard() {
 
       {acceptedNotice ? (
         <div className="fixed inset-0 z-[55] grid place-items-center overflow-y-auto bg-slate-950/50 px-4 py-6" role="dialog" aria-modal="true">
-          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
+          <div className="flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
             {isLoadingAsset ? (
               <div className="flex items-center justify-center py-12">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-lime-500" />
@@ -554,13 +616,13 @@ export default function Dashboard() {
               <>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Solicitud aceptada</p>
-                  <h3 className="mt-2 text-2xl font-black text-slate-900">🔔 Ya eres responsable del activo</h3>
+                  <h3 className="mt-2 text-2xl font-black text-slate-900">🔔 Activo pendiente de recepción</h3>
                   <p className="mt-1 text-sm text-slate-600">
-                    Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Edita los campos que necesites.
+                    Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Edita la información o confirma para asumir el activo.
                   </p>
                 </div>
 
-                <div className="mt-5 flex-1 space-y-3 overflow-y-auto pr-2">
+                <div className="mt-5 min-h-0 flex-1 space-y-3 overflow-y-auto pr-2">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre</label>
                     <input
@@ -610,11 +672,9 @@ export default function Dashboard() {
                       onChange={(event) => setEditForm((prev) => ({ ...prev, status: event.target.value }))}
                       className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-900"
                     >
-                      <option value="bajo_responsabilidad">Bajo responsabilidad</option>
-                      <option value="en_reparacion">En reparación</option>
-                      <option value="baja">Baja</option>
-                      <option value="disponible">Disponible</option>
-                      <option value="solicitado">Solicitado</option>
+                      {assetStatuses.map((item) => (
+                        <option key={item.code} value={item.code}>{item.label}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -751,7 +811,7 @@ export default function Dashboard() {
                   ) : null}
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 bg-white pt-4">
+                <div className="sticky bottom-0 mt-4 flex flex-wrap gap-2 border-t border-slate-100 bg-white pt-4">
                   <button
                     type="button"
                     disabled={isSavingEdit}
@@ -772,9 +832,9 @@ export default function Dashboard() {
                     type="button"
                     disabled={isSavingEdit}
                     className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 disabled:opacity-60"
-                    onClick={() => markRequestRead(acceptedNotice.id)}
+                    onClick={confirmAcceptedRequest}
                   >
-                    Marcar leída
+                    Aceptar y asumir activo
                   </button>
                 </div>
               </>
@@ -943,7 +1003,7 @@ export default function Dashboard() {
             >
               <span className="block text-3xl font-black">{inPossessionCount}</span>
               <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-slate-300" : "text-slate-500"}`}>
-                En posesión
+                  En uso
               </h4>
             </button>
 

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruDate, getPeruISOString } from "@/app/lib/time";
+import { getAssetStatusesFromDb, getDefaultAssetStatusCode, normalizeStatusCode } from "@/app/lib/assetStatus";
 
 export const runtime = "edge";
 
@@ -227,6 +228,11 @@ export async function POST(request: Request) {
     };
 
     const db = getDbBinding();
+    const statusCatalog = await getAssetStatusesFromDb(db);
+    const allowedStatuses = new Set(statusCatalog.map((item) => item.code));
+    const defaultStatus = getDefaultAssetStatusCode(statusCatalog);
+    const requestedStatus = normalizeStatusCode(String(status || "").trim().toLowerCase());
+    const finalStatus = requestedStatus && allowedStatuses.has(requestedStatus) ? requestedStatus : defaultStatus;
     const parsedCurrentValue = Number(currentValue ?? 0);
     const rawFabricationYear = fabricationYear ?? null;
     const parsedFabricationYear = rawFabricationYear === null || rawFabricationYear === undefined ? null : Number(rawFabricationYear);
@@ -275,7 +281,7 @@ export async function POST(request: Request) {
         photoUrl,
         parsedFabricationYear,
         parsedCurrentValue,
-        status || "bajo_responsabilidad",
+        finalStatus,
         notes ?? null,
         createdByUserId,
         holderUserId,
@@ -385,7 +391,7 @@ export async function POST(request: Request) {
       success: true,
       assetId,
       assetCode: assetIdentifier,
-      status: status || "bajo_responsabilidad",
+      status: finalStatus,
       holderName: holderDisplayName,
     });
   } catch (error: any) {

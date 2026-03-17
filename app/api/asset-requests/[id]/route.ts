@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: "id, action y actingUserEmail son requeridos" }, { status: 400 });
     }
 
-    if (!["accept", "reject", "cancel", "mark-read"].includes(action)) {
+    if (!["accept", "reject", "cancel", "mark-read", "confirm-receipt"].includes(action)) {
       return NextResponse.json({ error: "Acción inválida" }, { status: 400 });
     }
 
@@ -73,6 +73,57 @@ export async function POST(request: Request, { params }: { params: { id: string 
       return NextResponse.json({ error: "No autorizado para marcar esta notificación" }, { status: 403 });
     }
 
+    if (action === "confirm-receipt") {
+      if (assetRequest.status !== "aceptada") {
+        return NextResponse.json({ error: "Solo puedes confirmar recepciones aceptadas" }, { status: 409 });
+      }
+
+      if (assetRequest.requester_user_id !== actingUser.id) {
+        return NextResponse.json({ error: "Solo el solicitante puede confirmar la recepción" }, { status: 403 });
+      }
+
+      const now = getPeruISOString();
+
+      await db
+        .prepare("UPDATE assets SET holder_user_id = ?, status = ? WHERE id = ?")
+        .bind(assetRequest.requester_user_id, "en_uso", assetRequest.asset_id)
+        .run();
+
+      await db
+        .prepare(
+          `UPDATE asset_requests
+           SET status = ?, requester_read_at = ?
+           WHERE id = ?`
+        )
+        .bind("completada", now, requestId)
+        .run();
+
+      try {
+        await db
+          .prepare(
+            `INSERT INTO asset_movements (id, asset_id, movement_type, from_user_id, to_user_id, request_id, notes, created_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+          )
+          .bind(
+            crypto.randomUUID(),
+            assetRequest.asset_id,
+            "recepcion",
+            assetRequest.current_holder_user_id,
+            assetRequest.requester_user_id,
+            requestId,
+            "Recepción confirmada por el solicitante. Activo asumido por el nuevo responsable.",
+            now
+          )
+          .run();
+      } catch (error) {
+        if (!isMissingTableError(error, "asset_movements")) {
+          throw error;
+        }
+      }
+
+      return NextResponse.json({ success: true });
+    }
+
     if (action === "cancel") {
       if (assetRequest.status !== "pendiente") {
         return NextResponse.json({ error: "Solo puedes cancelar solicitudes pendientes" }, { status: 409 });
@@ -94,7 +145,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
       await db
         .prepare("UPDATE assets SET status = ? WHERE id = ?")
-        .bind("bajo_responsabilidad", assetRequest.asset_id)
+        .bind("en_uso", assetRequest.asset_id)
         .run();
 
       try {
@@ -144,8 +195,8 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     if (action === "accept") {
       await db
-        .prepare("UPDATE assets SET holder_user_id = ?, status = ? WHERE id = ?")
-        .bind(assetRequest.requester_user_id, "bajo_responsabilidad", assetRequest.asset_id)
+        .prepare("UPDATE assets SET status = ? WHERE id = ?")
+        .bind("pendiente_recepcion", assetRequest.asset_id)
         .run();
 
       try {
@@ -157,11 +208,11 @@ export async function POST(request: Request, { params }: { params: { id: string 
           .bind(
             crypto.randomUUID(),
             assetRequest.asset_id,
-            "traspaso",
+            "aprobacion_traspaso",
             assetRequest.current_holder_user_id,
             assetRequest.requester_user_id,
             requestId,
-            "Traspaso aceptado por el responsable actual.",
+            "Solicitud aceptada por el responsable actual. Pendiente de recepción del solicitante.",
             now
           )
           .run();
@@ -173,7 +224,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
     } else {
       await db
         .prepare("UPDATE assets SET status = ? WHERE id = ?")
-        .bind("bajo_responsabilidad", assetRequest.asset_id)
+        .bind("en_uso", assetRequest.asset_id)
         .run();
 
       try {

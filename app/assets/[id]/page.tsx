@@ -93,11 +93,14 @@ interface EditFormState {
 }
 
 const statusLabel: Record<string, string> = {
-  bajo_responsabilidad: "Bajo responsabilidad",
-  en_reparacion: "En reparación",
+  en_uso: "En uso",
+  mantenimiento: "Mantenimiento",
   baja: "Baja",
   disponible: "Disponible",
   solicitado: "Solicitado",
+  pendiente_recepcion: "Pendiente de aceptar recepcion",
+  bajo_responsabilidad: "En uso",
+  en_reparacion: "Mantenimiento",
 };
 
 const typeLabel: Record<AssetType, string> = {
@@ -141,7 +144,7 @@ export default function AssetDetailPage() {
     photoUrl: "",
     fabricationYear: "",
     currentValue: "",
-    status: "bajo_responsabilidad",
+    status: "en_uso",
     notes: "",
     instrumentType: "",
     brand: "",
@@ -178,7 +181,7 @@ export default function AssetDetailPage() {
         photoUrl: data.photo_url || "",
         fabricationYear: data.fabrication_year !== null && data.fabrication_year !== undefined ? String(data.fabrication_year) : "",
         currentValue: data.current_value !== null && data.current_value !== undefined ? String(data.current_value) : "",
-        status: data.status || "bajo_responsabilidad",
+        status: data.status || "en_uso",
         notes: data.notes || "",
         instrumentType: data.instrument_type || "",
         brand: data.brand || "",
@@ -267,6 +270,8 @@ export default function AssetDetailPage() {
         const typeMap: Record<string, string> = {
           solicitud: "Solicitud",
           traspaso: "Traspaso",
+          aprobacion_traspaso: "Aprobación",
+          recepcion: "Recepción",
           rechazo: "Rechazo",
           cancelacion: "Cancelación",
           edicion: "Edición",
@@ -274,6 +279,8 @@ export default function AssetDetailPage() {
         const descriptionMap: Record<string, string> = {
           solicitud: `${toDisplay} solicitó este activo a ${fromDisplay}.`,
           traspaso: `${fromDisplay} cedió este activo a ${toDisplay}.`,
+          aprobacion_traspaso: `${fromDisplay} aceptó la solicitud; pendiente recepción de ${toDisplay}.`,
+          recepcion: `${toDisplay} confirmó recepción y asumió el activo.`,
           rechazo: `${fromDisplay} rechazó la solicitud de ${toDisplay}.`,
           cancelacion: `${toDisplay} canceló la solicitud de este activo.`,
           edicion: `Se editaron campos del activo por ${toDisplay}.`,
@@ -692,11 +699,12 @@ export default function AssetDetailPage() {
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Estado
                   <select value={editForm.status} onChange={(e) => setEditForm((prev) => ({ ...prev, status: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2">
-                    <option value="bajo_responsabilidad">Bajo responsabilidad</option>
+                    <option value="en_uso">En uso</option>
                     <option value="disponible">Disponible</option>
-                    <option value="en_reparacion">En reparación</option>
+                    <option value="mantenimiento">Mantenimiento</option>
                     <option value="baja">Baja</option>
                     <option value="solicitado">Solicitado</option>
+                    <option value="pendiente_recepcion">Pendiente de aceptar recepción</option>
                   </select>
                 </label>
                 <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-2">
