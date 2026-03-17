@@ -50,7 +50,6 @@ export default function AssetSearch() {
 
   // Column filters
   const [filterName, setFilterName] = useState("");
-  const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterHolder, setFilterHolder] = useState("");
   const [tagQuery, setTagQuery] = useState("");
@@ -97,7 +96,6 @@ export default function AssetSearch() {
   const filtered = useMemo(() => {
     return allItems.filter((item) => {
       if (filterName && !item.name.toLowerCase().includes(filterName.toLowerCase())) return false;
-      if (filterType && item.assetType !== filterType) return false;
       if (filterStatus) {
         const normalizedStatus = item.status === "bajo_responsabilidad"
           ? "en_uso"
@@ -116,7 +114,7 @@ export default function AssetSearch() {
       }
       return true;
     });
-  }, [allItems, filterName, filterType, filterStatus, filterHolder, activeTags]);
+  }, [allItems, filterName, filterStatus, filterHolder, activeTags]);
 
   const addTagFilter = (tag: string) => {
     const normalized = String(tag || "").trim();
@@ -153,14 +151,13 @@ export default function AssetSearch() {
 
   const clearFilters = () => {
     setFilterName("");
-    setFilterType("");
     setFilterStatus("");
     setFilterHolder("");
     setTagQuery("");
     setActiveTags(new Set());
   };
 
-  const hasFilters = !!(filterName || filterType || filterStatus || filterHolder || activeTags.size > 0);
+  const hasFilters = !!(filterName || filterStatus || filterHolder || activeTags.size > 0);
 
   const isDirectRenderableUrl = (url: string) =>
     url.startsWith("/") || url.startsWith("data:") || url.startsWith("blob:");
@@ -199,6 +196,12 @@ export default function AssetSearch() {
       {/* Grid table */}
       <div className="assets-table-wrap">
         <table className="assets-table">
+          <colgroup>
+            <col className="assets-col-photo" />
+            <col className="assets-col-status" />
+            <col className="assets-col-holder" />
+            <col className="assets-col-description" />
+          </colgroup>
           <thead>
             {/* Filter row */}
             <tr className="assets-table-filters">
@@ -237,27 +240,6 @@ export default function AssetSearch() {
                 ) : null}
               </th>
               <th>
-                <input
-                  className="col-filter-input"
-                  placeholder="Filtrar nombre…"
-                  value={filterName}
-                  onChange={(e) => setFilterName(e.target.value)}
-                />
-              </th>
-              <th>
-                <select
-                  className="col-filter-input"
-                  value={filterType}
-                  onChange={(e) => setFilterType(e.target.value)}
-                >
-                  <option value="">Todos</option>
-                  <option value="instrumento">Instrumento</option>
-                  <option value="reconocimiento">Reconocimiento</option>
-                  <option value="uniforme">Uniforme</option>
-                  <option value="otro">Otro</option>
-                </select>
-              </th>
-              <th>
                 <select
                   className="col-filter-input"
                   value={filterStatus}
@@ -275,31 +257,38 @@ export default function AssetSearch() {
               <th>
                 <input
                   className="col-filter-input"
-                  placeholder="Filtrar responsable…"
+                  placeholder="Filtrar chapa/responsable…"
                   value={filterHolder}
                   onChange={(e) => setFilterHolder(e.target.value)}
+                />
+              </th>
+              <th>
+                <input
+                  className="col-filter-input"
+                  placeholder="Filtrar descripción…"
+                  value={filterName}
+                  onChange={(e) => setFilterName(e.target.value)}
                 />
               </th>
             </tr>
             {/* Column headers */}
             <tr className="assets-table-head">
               <th className="col-th-photo">Foto</th>
-              <th>Nombre / Descripción</th>
-              <th>Tipo</th>
               <th>Estado</th>
               <th>Responsable</th>
+              <th>Descripción</th>
             </tr>
           </thead>
           <tbody>
             {isLoading ? (
               <tr>
-                <td colSpan={5} className="table-placeholder">
+                <td colSpan={4} className="table-placeholder">
                   <div className="loading-spinner" style={{ margin: "0 auto" }} />
                 </td>
               </tr>
             ) : filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="table-placeholder">
+                <td colSpan={4} className="table-placeholder">
                   {hasFilters
                     ? "Ningún activo coincide con los filtros."
                     : "Sin activos registrados aún."}
@@ -314,6 +303,7 @@ export default function AssetSearch() {
                   item.holderEmail ||
                   "—";
                 const resolvedPhotoUrl = resolveAssetImageUrl(item.photoUrl);
+                const resolvedHolderPhotoUrl = resolveAssetImageUrl(item.holderPicture);
                 return (
                   <tr
                     key={item.id}
@@ -363,8 +353,37 @@ export default function AssetSearch() {
                     </td>
 
                     {/* Name + sub-description */}
+                    <td>
+                      <span className={`status-badge status-${item.status}`}>
+                        {STATUS_LABELS[item.status] || item.status}
+                      </span>
+                    </td>
+
+                    {/* Holder with avatar */}
+                    <td className="col-holder">
+                      <div className="holder-cell">
+                        {resolvedHolderPhotoUrl ? (
+                          <img
+                            src={resolvedHolderPhotoUrl}
+                            alt={holder}
+                            className="holder-avatar"
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className="holder-avatar-placeholder">
+                            {holder.charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <span>{holder}</span>
+                      </div>
+                    </td>
+
+                    {/* Description */}
                     <td className="col-name">
                       <span className="asset-name">{item.name}</span>
+                      <span className="result-badge mt-1 inline-block">
+                        {TYPE_LABELS[item.assetType] || item.assetType}
+                      </span>
                       {item.notes && <span className="asset-notes">{item.notes}</span>}
                       {item.assetType === "instrumento" && item.instrument && (
                         <span className="asset-notes">
@@ -378,39 +397,6 @@ export default function AssetSearch() {
                         </span>
                       )}
                       <span className="sr-only">{(item.tags || []).join(" ")}</span>
-                    </td>
-
-                    {/* Type badge */}
-                    <td>
-                      <span className="result-badge">
-                        {TYPE_LABELS[item.assetType] || item.assetType}
-                      </span>
-                    </td>
-
-                    {/* Status badge */}
-                    <td>
-                      <span className={`status-badge status-${item.status}`}>
-                        {STATUS_LABELS[item.status] || item.status}
-                      </span>
-                    </td>
-
-                    {/* Holder with avatar */}
-                    <td className="col-holder">
-                      <div className="holder-cell">
-                        {item.holderPicture ? (
-                          <img
-                            src={item.holderPicture}
-                            alt={holder}
-                            className="holder-avatar"
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className="holder-avatar-placeholder">
-                            {holder.charAt(0).toUpperCase()}
-                          </div>
-                        )}
-                        <span>{holder}</span>
-                      </div>
                     </td>
                   </tr>
                 );

@@ -915,10 +915,26 @@ html {
 
 .assets-table {
     width: 100%;
-    min-width: 920px;
+    min-width: 960px;
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;
+}
+
+.assets-col-photo {
+    width: 126px;
+}
+
+.assets-col-status {
+    width: 140px;
+}
+
+.assets-col-holder {
+    width: 230px;
+}
+
+.assets-col-description {
+    width: auto;
 }
 
 .assets-table-head th {
@@ -986,7 +1002,7 @@ html {
 
 .col-th-photo,
 .col-photo {
-    width: 112px;
+    width: 126px;
 }
 
 .grid-thumb {
@@ -1087,22 +1103,17 @@ html {
 
 .assets-table thead th:nth-child(2),
 .assets-table tbody td:nth-child(2) {
-    width: 34%;
+    width: 140px;
 }
 
 .assets-table thead th:nth-child(3),
 .assets-table tbody td:nth-child(3) {
-    width: 18%;
+    width: 230px;
 }
 
 .assets-table thead th:nth-child(4),
 .assets-table tbody td:nth-child(4) {
-    width: 18%;
-}
-
-.assets-table thead th:nth-child(5),
-.assets-table tbody td:nth-child(5) {
-    width: 30%;
+    width: auto;
 }
 
 /* Photo lightbox */

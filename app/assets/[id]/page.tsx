@@ -157,6 +157,7 @@ export default function AssetDetailPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFeedback, setEditFeedback] = useState("");
   const [movementFilter, setMovementFilter] = useState("");
+  const [isPhotoBroken, setIsPhotoBroken] = useState(false);
   const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
     photoUrl: "",
@@ -198,6 +199,7 @@ export default function AssetDetailPage() {
         throw new Error(data.error || "No se pudo cargar el activo.");
       }
       setAsset(data);
+      setIsPhotoBroken(false);
       setEditForm({
         name: data.name || "",
         photoUrl: data.photo_url || "",
@@ -441,7 +443,7 @@ export default function AssetDetailPage() {
 
   return (
     <main className="flex min-h-screen w-full items-start justify-center px-4 py-6">
-      <section className="w-full max-w-xl space-y-4">
+      <section className="w-full max-w-2xl space-y-4">
 
         {/* Top nav */}
         <PageHeader
@@ -453,10 +455,17 @@ export default function AssetDetailPage() {
 
         {/* Photo */}
         <div className="overflow-hidden rounded-[2rem] bg-white shadow-sm ring-1 ring-slate-100">
-          {asset.photo_url ? (
-            <img src={resolveAssetImageUrl(asset.photo_url)} alt="Foto del activo" className="h-64 w-full object-cover" />
+          {asset.photo_url && !isPhotoBroken ? (
+            <div className="aspect-[4/3] w-full bg-slate-50">
+              <img
+                src={resolveAssetImageUrl(asset.photo_url)}
+                alt="Foto del activo"
+                className="h-full w-full object-contain p-2 sm:object-cover sm:p-0"
+                onError={() => setIsPhotoBroken(true)}
+              />
+            </div>
           ) : (
-            <div className="flex h-64 w-full items-center justify-center bg-slate-50 text-sm font-medium text-slate-400">
+            <div className="flex aspect-[4/3] w-full items-center justify-center bg-slate-50 text-sm font-medium text-slate-400">
               Sin foto registrada
             </div>
           )}
