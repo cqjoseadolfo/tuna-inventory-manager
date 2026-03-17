@@ -632,7 +632,7 @@ export default function AssetDetailPage() {
         </div>
 
         <div className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
-          <h2 className="mb-3 text-lg font-bold text-slate-900">Historial de edición de campos</h2>
+          <h2 className="mb-3 text-lg font-bold text-slate-900">Historial de cambios</h2>
           {Array.isArray(asset.editLogs) && asset.editLogs.length > 0 ? (
             <ul className="space-y-3">
               {asset.editLogs.map((logItem) => {
@@ -648,21 +648,18 @@ export default function AssetDetailPage() {
                   : "—";
                 return (
                   <li key={logItem.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{logItem.field_name}</p>
-                    <p className="mt-1 text-sm text-slate-700">
-                      <strong>Antes:</strong> {logItem.old_value || "(vacío)"}
+                    <p className="text-xs font-semibold uppercase tracking-wide text-lime-700">Se cambió {logItem.field_name}</p>
+                    <p className="mt-1 text-sm font-medium text-slate-700">
+                      {logItem.new_value || "(vacío)"}
                     </p>
-                    <p className="mt-0.5 text-sm text-slate-700">
-                      <strong>Ahora:</strong> {logItem.new_value || "(vacío)"}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">Editado por {editor} · {dateLabel}</p>
+                    <p className="mt-1 text-xs text-slate-500">Por {editor} · {dateLabel}</p>
                   </li>
                 );
               })}
             </ul>
           ) : (
             <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
-              Aún no hay cambios de campos registrados.
+              Aún no hay cambios registrados.
             </div>
           )}
         </div>
