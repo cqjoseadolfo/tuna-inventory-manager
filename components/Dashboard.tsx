@@ -372,7 +372,7 @@ export default function Dashboard() {
         .map((item: string) => String(item || "").trim())
         .filter(Boolean);
 
-      const payload = {
+      const payload: any = {
         actingUserEmail: user.email,
         name: editForm.name,
         photoUrl: editForm.photoUrl,
@@ -380,18 +380,28 @@ export default function Dashboard() {
         currentValue: editForm.currentValue ? Number(editForm.currentValue) : null,
         status: editForm.status,
         notes: editForm.notes,
-        instrumentType: editForm.instrumentType,
-        brand: editForm.brand,
-        issuer: editForm.issuer,
-        issueDate: editForm.issueDate,
-        documentType: editForm.documentType,
-        referenceCode: editForm.referenceCode,
-        size: editForm.size,
-        hasCinta: editForm.hasCinta,
-        hasJubon: editForm.hasJubon,
-        hasGreguesco: editForm.hasGreguesco,
         tags,
       };
+
+      if (acceptedAsset.asset_type === "instrumento") {
+        payload.instrumentType = editForm.instrumentType;
+        payload.brand = editForm.brand;
+      }
+
+      if (acceptedAsset.asset_type === "reconocimiento") {
+        payload.issuer = editForm.issuer;
+        payload.issueDate = editForm.issueDate;
+        payload.documentType = editForm.documentType;
+        payload.referenceCode = editForm.referenceCode;
+        payload.reference_code = editForm.referenceCode;
+      }
+
+      if (acceptedAsset.asset_type === "uniforme") {
+        payload.size = editForm.size;
+        payload.hasCinta = editForm.hasCinta;
+        payload.hasJubon = editForm.hasJubon;
+        payload.hasGreguesco = editForm.hasGreguesco;
+      }
 
       const response = await fetch(`/api/assets/${acceptedAsset.id}`, {
         method: "PATCH",
@@ -404,9 +414,42 @@ export default function Dashboard() {
         throw new Error(data?.error || "No se pudo guardar la edición.");
       }
 
-      setEditFeedback("Cambios guardados correctamente.");
+      setEditFeedback(data?.updated === false ? "No hubo cambios para guardar." : "Cambios guardados correctamente.");
       await loadDashboardAssets();
-      await markRequestRead(acceptedNotice.id);
+
+      const params = new URLSearchParams();
+      params.set("viewerEmail", user.email);
+      const refreshed = await fetch(`/api/assets/${acceptedAsset.id}?${params.toString()}`);
+      const refreshedData = await refreshed.json();
+      if (refreshed.ok && !refreshedData?.error) {
+        const detail = refreshedData as AcceptedAssetDetail;
+        setAcceptedAsset(detail);
+        setEditForm({
+          name: String(detail.name || ""),
+          photoUrl: String(detail.photo_url || ""),
+          fabricationYear:
+            detail.fabrication_year === null || detail.fabrication_year === undefined
+              ? ""
+              : String(detail.fabrication_year),
+          currentValue:
+            detail.current_value === null || detail.current_value === undefined
+              ? ""
+              : String(detail.current_value),
+          status: String(detail.status || "bajo_responsabilidad"),
+          notes: String(detail.notes || ""),
+          instrumentType: String(detail.instrument_type || ""),
+          brand: String(detail.brand || ""),
+          issuer: String(detail.issuer || ""),
+          issueDate: String(detail.issue_date || ""),
+          documentType: String(detail.document_type || ""),
+          referenceCode: String(detail.reference_code || ""),
+          size: String(detail.size || ""),
+          hasCinta: Boolean(detail.has_cinta),
+          hasJubon: Boolean(detail.has_jubon),
+          hasGreguesco: Boolean(detail.has_greguesco),
+          tagsInput: Array.isArray(detail.tags) ? detail.tags.join(", ") : "",
+        });
+      }
     } catch (error: any) {
       setEditFeedback(error?.message || "No se pudo guardar la edición.");
     } finally {
@@ -443,7 +486,7 @@ export default function Dashboard() {
 
       {acceptedNotice ? (
         <div className="fixed inset-0 z-[55] grid place-items-center overflow-y-auto bg-slate-950/50 px-4 py-6" role="dialog" aria-modal="true">
-          <div className="w-full max-w-lg rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
+          <div className="flex max-h-[90vh] w-full max-w-lg flex-col overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
             {isLoadingAsset ? (
               <div className="flex items-center justify-center py-12">
                 <div className="h-10 w-10 animate-spin rounded-full border-4 border-slate-200 border-t-lime-500" />
@@ -471,7 +514,7 @@ export default function Dashboard() {
                   </p>
                 </div>
 
-                <div className="mt-5 max-h-[60vh] space-y-3 overflow-y-auto pr-2">
+                <div className="mt-5 flex-1 space-y-3 overflow-y-auto pr-2">
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre</label>
                     <input
@@ -662,7 +705,7 @@ export default function Dashboard() {
                   ) : null}
                 </div>
 
-                <div className="mt-5 flex flex-wrap gap-2">
+                <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 bg-white pt-4">
                   <button
                     type="button"
                     disabled={isSavingEdit}

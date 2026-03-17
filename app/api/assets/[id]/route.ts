@@ -308,7 +308,12 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       const nextIssuer = Object.prototype.hasOwnProperty.call(body, "issuer") ? normalizeString(body?.issuer) : current?.issuer ?? null;
       const nextIssueDate = Object.prototype.hasOwnProperty.call(body, "issueDate") ? normalizeString(body?.issueDate) : current?.issue_date ?? null;
       const nextDocumentType = Object.prototype.hasOwnProperty.call(body, "documentType") ? normalizeString(body?.documentType) : current?.document_type ?? null;
-      const nextReferenceCode = Object.prototype.hasOwnProperty.call(body, "referenceCode") ? normalizeString(body?.referenceCode) : current?.reference_code ?? null;
+      const hasReferenceCode =
+        Object.prototype.hasOwnProperty.call(body, "referenceCode") ||
+        Object.prototype.hasOwnProperty.call(body, "reference_code");
+      const nextReferenceCode = hasReferenceCode
+        ? normalizeString(body?.referenceCode ?? body?.reference_code)
+        : current?.reference_code ?? null;
 
       if (!current) {
         await db
@@ -325,7 +330,7 @@ export async function PATCH(request: Request, { params }: { params: { id: string
       if (Object.prototype.hasOwnProperty.call(body, "issuer")) registerChange("issuer", current?.issuer ?? null, nextIssuer);
       if (Object.prototype.hasOwnProperty.call(body, "issueDate")) registerChange("issue_date", current?.issue_date ?? null, nextIssueDate);
       if (Object.prototype.hasOwnProperty.call(body, "documentType")) registerChange("document_type", current?.document_type ?? null, nextDocumentType);
-      if (Object.prototype.hasOwnProperty.call(body, "referenceCode")) registerChange("reference_code", current?.reference_code ?? null, nextReferenceCode);
+      if (hasReferenceCode) registerChange("reference_code", current?.reference_code ?? null, nextReferenceCode);
     }
 
     if (asset.asset_type === "uniforme") {

@@ -401,6 +401,7 @@ export default function AssetDetailPage() {
         payload.issueDate = editForm.issueDate;
         payload.documentType = editForm.documentType;
         payload.referenceCode = editForm.referenceCode;
+        payload.reference_code = editForm.referenceCode;
       }
 
       if (asset.asset_type === "uniforme") {
@@ -667,14 +668,14 @@ export default function AssetDetailPage() {
         </div>
 
         {isEditModalOpen ? (
-          <div className="fixed inset-0 z-[60] grid place-items-center bg-slate-950/50 px-4" role="dialog" aria-modal="true">
-            <div className="w-full max-w-2xl rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
+          <div className="fixed inset-0 z-[60] grid place-items-center overflow-y-auto bg-slate-950/50 px-4 py-6" role="dialog" aria-modal="true">
+            <div className="flex max-h-[90vh] w-full max-w-2xl flex-col overflow-hidden rounded-[2rem] bg-white p-6 shadow-2xl ring-1 ring-slate-100">
               <div className="flex items-center justify-between gap-3">
                 <h3 className="text-xl font-black text-slate-900">Editar activo</h3>
                 <button type="button" className="rounded-full p-2 text-slate-500 hover:bg-slate-100" onClick={() => setIsEditModalOpen(false)}>✕</button>
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-4 grid flex-1 gap-3 overflow-y-auto pr-2 md:grid-cols-2">
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Código / nombre
                   <input value={editForm.name} onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
@@ -757,7 +758,7 @@ export default function AssetDetailPage() {
                 ) : null}
               </div>
 
-              <div className="mt-5 flex flex-wrap gap-2">
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 bg-white pt-4">
                 <button type="button" onClick={handleSaveEdit} disabled={isSavingEdit} className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:bg-slate-400">
                   {isSavingEdit ? "Guardando..." : "Guardar cambios"}
                 </button>
