@@ -13,21 +13,7 @@ type AssetItem = {
 
 type AssetRequestItem = {
   id: string;
-  asset_id: string;
-  asset_name: string;
-  asset_type: string;
-  status: string;
   isUnread?: boolean;
-  photo_url?: string | null;
-  requester_nickname?: string | null;
-  requester_name?: string | null;
-  requester_email?: string | null;
-  holder_nickname?: string | null;
-  holder_name?: string | null;
-  holder_email?: string | null;
-  holder_read_at?: string | null;
-  requester_read_at?: string | null;
-  created_at: string;
 };
 
 type DashboardFilter = "all" | "mine" | "requested";
@@ -43,11 +29,7 @@ export default function Dashboard() {
   const [statsError, setStatsError] = useState("");
   const [activeFilter, setActiveFilter] = useState<DashboardFilter>("all");
   const [incomingRequests, setIncomingRequests] = useState<AssetRequestItem[]>([]);
-  const [outgoingRequests, setOutgoingRequests] = useState<AssetRequestItem[]>([]);
-  const [isRequestsLoading, setIsRequestsLoading] = useState(true);
-  const [requestsError, setRequestsError] = useState("");
   const [unreadIncomingCount, setUnreadIncomingCount] = useState(0);
-  const [unreadOutgoingCount, setUnreadOutgoingCount] = useState(0);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   if (!user) return null;
@@ -111,8 +93,6 @@ export default function Dashboard() {
   const loadRequests = async () => {
     if (!user?.email) return;
 
-    setIsRequestsLoading(true);
-    setRequestsError("");
     try {
       const response = await fetch(`/api/asset-requests?userEmail=${encodeURIComponent(user.email)}`);
       const data = await response.json();
@@ -120,14 +100,8 @@ export default function Dashboard() {
         throw new Error(data?.error || "No se pudieron cargar las solicitudes.");
       }
       setIncomingRequests(Array.isArray(data?.incoming) ? data.incoming : []);
-      setOutgoingRequests(Array.isArray(data?.outgoing) ? data.outgoing : []);
       setUnreadIncomingCount(Number(data?.unreadIncomingCount || 0));
-      setUnreadOutgoingCount(Number(data?.unreadOutgoingCount || 0));
-    } catch (error: any) {
-      setRequestsError(error?.message || "No se pudieron cargar las solicitudes.");
-    } finally {
-      setIsRequestsLoading(false);
-    }
+    } catch {}
   };
 
   useEffect(() => {
@@ -191,57 +165,6 @@ export default function Dashboard() {
     activeFilter === "mine" ? "En posesión" : activeFilter === "requested" ? "Solicitados" : "Activos";
   const hasPendingApproval = unreadIncomingCount > 0 || incomingRequests.length > 0;
 
-  const handleRequestAction = async (requestId: string, action: "accept" | "reject") => {
-    try {
-      const response = await fetch(`/api/asset-requests/${requestId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, actingUserEmail: user.email }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || "No se pudo procesar la solicitud.");
-      }
-      await Promise.all([loadRequests(), loadDashboardAssets()]);
-    } catch (error: any) {
-      setRequestsError(error?.message || "No se pudo procesar la solicitud.");
-    }
-  };
-
-  const handleRequestMarkRead = async (requestId: string) => {
-    try {
-      const response = await fetch(`/api/asset-requests/${requestId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || "No se pudo marcar como leída.");
-      }
-      await loadRequests();
-    } catch (error: any) {
-      setRequestsError(error?.message || "No se pudo marcar como leída.");
-    }
-  };
-
-  const handleRequestCancel = async (requestId: string) => {
-    try {
-      const response = await fetch(`/api/asset-requests/${requestId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "cancel", actingUserEmail: user.email }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || "No se pudo cancelar la solicitud.");
-      }
-      await Promise.all([loadRequests(), loadDashboardAssets()]);
-    } catch (error: any) {
-      setRequestsError(error?.message || "No se pudo cancelar la solicitud.");
-    }
-  };
-
   return (
     <div className="relative w-full max-w-xl">
       <button
@@ -283,6 +206,28 @@ export default function Dashboard() {
 
           <nav className="grid" aria-label="Opciones de navegación">
             <Link
+              href="/"
+              className="border-b border-slate-200 py-3 text-base font-medium text-slate-700 transition hover:text-blue-600"
+              role="menuitem"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              href="/requests"
+              className="flex items-center justify-between gap-3 border-b border-slate-200 py-3 text-base font-medium text-slate-700 transition hover:text-blue-600"
+              role="menuitem"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              <span>Solicitudes</span>
+              {hasPendingApproval ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-rose-500 px-2 py-1 text-xs font-bold text-white">
+                  <span aria-hidden="true">🔔</span>
+                  {unreadIncomingCount || incomingRequests.length}
+                </span>
+              ) : null}
+            </Link>
+            <Link
               href="/profile"
               className="border-b border-slate-200 py-3 text-base font-medium text-slate-700 transition hover:text-blue-600"
               role="menuitem"
@@ -310,139 +255,6 @@ export default function Dashboard() {
             </button>
           </nav>
 
-          <section className="mt-2 grid gap-3 border-t border-slate-200 pt-3" aria-label="Solicitudes de activos">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="flex items-center gap-2 text-sm font-bold text-slate-900">
-                  <span aria-hidden="true">🔔</span>
-                  Solicitudes de activos
-                </p>
-                <p className="mt-1 text-xs text-slate-500">Gestiona solicitudes y respuestas desde aquí.</p>
-              </div>
-              {unreadIncomingCount > 0 ? (
-                <span className="rounded-full bg-rose-500 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                  {unreadIncomingCount} pendiente{unreadIncomingCount === 1 ? "" : "s"}
-                </span>
-              ) : null}
-            </div>
-
-            {requestsError ? (
-              <p className="rounded-2xl bg-rose-50 px-3 py-2 text-xs text-rose-600 ring-1 ring-rose-100">{requestsError}</p>
-            ) : null}
-
-            <div className="grid gap-3">
-              <div className="rounded-[1.25rem] bg-slate-50 p-3 ring-1 ring-slate-100">
-                <h4 className="text-sm font-bold text-slate-900">Por aprobar{unreadIncomingCount > 0 ? ` (${unreadIncomingCount})` : ""}</h4>
-                <p className="mt-1 text-xs text-slate-500">Solicitudes que requieren tu decisión.</p>
-                <div className="mt-3 grid gap-2">
-                  {isRequestsLoading ? (
-                    <p className="text-xs text-slate-500">Cargando solicitudes...</p>
-                  ) : incomingRequests.length === 0 ? (
-                    <p className="text-xs text-slate-500">No tienes solicitudes pendientes.</p>
-                  ) : (
-                    incomingRequests.map((item) => {
-                      const requester = item.requester_nickname || item.requester_name || item.requester_email || "Usuario";
-                      return (
-                        <div key={item.id} className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
-                          <Link
-                            href={`/assets/${item.asset_id}`}
-                            className="text-sm font-bold text-slate-900 hover:text-lime-700"
-                            onClick={() => setIsMenuOpen(false)}
-                          >
-                            {item.asset_name}
-                          </Link>
-                          <p className="mt-1 text-xs text-slate-600">{requester} solicitó este activo.</p>
-                          {item.isUnread ? <p className="mt-1 text-[11px] font-semibold text-rose-600">Acción pendiente de aprobar</p> : null}
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {item.isUnread ? (
-                              <button
-                                type="button"
-                                onClick={() => handleRequestMarkRead(item.id)}
-                                className="rounded-2xl bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                              >
-                                Marcar leída
-                              </button>
-                            ) : null}
-                            <button
-                              type="button"
-                              onClick={() => handleRequestAction(item.id, "accept")}
-                              className="rounded-2xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white"
-                            >
-                              Ceder
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleRequestAction(item.id, "reject")}
-                              className="rounded-2xl bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                            >
-                              Rechazar
-                            </button>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-[1.25rem] bg-slate-50 p-3 ring-1 ring-slate-100">
-                <h4 className="text-sm font-bold text-slate-900">Enviadas{unreadOutgoingCount > 0 ? ` (${unreadOutgoingCount} nuevas)` : ""}</h4>
-                <p className="mt-1 text-xs text-slate-500">Respuestas y solicitudes enviadas.</p>
-                <div className="mt-3 grid gap-2">
-                  {isRequestsLoading ? (
-                    <p className="text-xs text-slate-500">Cargando solicitudes...</p>
-                  ) : outgoingRequests.length === 0 ? (
-                    <p className="text-xs text-slate-500">No has enviado solicitudes.</p>
-                  ) : (
-                    outgoingRequests.map((item) => {
-                      const holder = item.holder_nickname || item.holder_name || item.holder_email || "Responsable actual";
-                      return (
-                        <div key={item.id} className="rounded-2xl bg-white p-3 ring-1 ring-slate-200">
-                          <Link
-                            href={`/assets/${item.asset_id}`}
-                            className="text-sm font-bold text-slate-900 hover:text-lime-700"
-                            onClick={() => setIsMenuOpen(false)}
-                          >
-                            {item.asset_name}
-                          </Link>
-                          <p className="mt-1 text-xs text-slate-600">
-                            {item.status === "pendiente"
-                              ? `Esperando respuesta de ${holder}.`
-                              : item.status === "aceptada"
-                                ? `${holder} aceptó la solicitud.`
-                                : item.status === "rechazada"
-                                  ? `${holder} rechazó la solicitud.`
-                                  : "Solicitud cancelada."}
-                          </p>
-                          {item.isUnread ? <p className="mt-1 text-[11px] font-semibold text-lime-700">Nueva actualización</p> : null}
-                          <div className="mt-2 flex flex-wrap gap-2">
-                            {item.status === "pendiente" ? (
-                              <button
-                                type="button"
-                                onClick={() => handleRequestCancel(item.id)}
-                                className="rounded-2xl bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                              >
-                                Cancelar
-                              </button>
-                            ) : null}
-                            {item.isUnread ? (
-                              <button
-                                type="button"
-                                onClick={() => handleRequestMarkRead(item.id)}
-                                className="rounded-2xl bg-white px-3 py-2 text-xs font-semibold text-slate-700 ring-1 ring-slate-200"
-                              >
-                                Marcar leída
-                              </button>
-                            ) : null}
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
-            </div>
-          </section>
         </aside>
       </div>
 
