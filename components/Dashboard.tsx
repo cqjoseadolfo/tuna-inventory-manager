@@ -119,6 +119,7 @@ export default function Dashboard() {
   const [editForm, setEditForm] = useState<EditFormState>(emptyEditForm());
   const [assetStatuses, setAssetStatuses] = useState<AssetStatusOption[]>([]);
   const menuRef = useRef<HTMLDivElement | null>(null);
+  const editNameInputRef = useRef<HTMLInputElement | null>(null);
   const dismissedAcceptedRequestIdRef = useRef<string | null>(null);
 
   if (!user) return null;
@@ -407,133 +408,56 @@ export default function Dashboard() {
     activeFilter === "mine" ? "En posesión" : activeFilter === "requested" ? "Solicitados" : "Activos";
   const hasPendingApproval = unreadIncomingCount > 0 || incomingRequests.length > 0;
 
-  const markRequestRead = async (requestId: string) => {
-    try {
-      const response = await fetch(`/api/asset-requests/${requestId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
-      });
-
-      const data = await response.json();
-      if (!response.ok || data?.error) {
-        throw new Error(data?.error || "No se pudo marcar la solicitud como leída.");
-      }
-
-      setAcceptedNotice(null);
-      setAcceptedAsset(null);
-      setEditForm(emptyEditForm());
-      await loadRequests();
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const handleSaveEdit = async () => {
+  const saveAcceptedEdit = async () => {
     if (!acceptedAsset?.id || !acceptedNotice?.id || !user?.email) return;
-    setIsSavingEdit(true);
-    setEditFeedback("");
+    const tags = editForm.tagsInput
+      .split(",")
+      .map((item: string) => String(item || "").trim())
+      .filter(Boolean);
 
-    try {
-      const tags = editForm.tagsInput
-        .split(",")
-        .map((item: string) => String(item || "").trim())
-        .filter(Boolean);
+    const payload: any = {
+      actingUserEmail: user.email,
+      name: editForm.name,
+      photoUrl: editForm.photoUrl,
+      fabricationYear: editForm.fabricationYear ? Number(editForm.fabricationYear) : null,
+      currentValue: editForm.currentValue ? Number(editForm.currentValue) : null,
+      status: editForm.status,
+      notes: editForm.notes,
+      tags,
+    };
 
-      const payload: any = {
-        actingUserEmail: user.email,
-        name: editForm.name,
-        photoUrl: editForm.photoUrl,
-        fabricationYear: editForm.fabricationYear ? Number(editForm.fabricationYear) : null,
-        currentValue: editForm.currentValue ? Number(editForm.currentValue) : null,
-        status: editForm.status,
-        notes: editForm.notes,
-        tags,
-      };
-
-      if (acceptedAsset.asset_type === "instrumento") {
-        payload.instrumentType = editForm.instrumentType;
-        payload.brand = editForm.brand;
-      }
-
-      if (acceptedAsset.asset_type === "reconocimiento") {
-        payload.issuer = editForm.issuer;
-        payload.issueDate = editForm.issueDate;
-        payload.documentType = editForm.documentType;
-        payload.referenceCode = editForm.referenceCode;
-        payload.reference_code = editForm.referenceCode;
-      }
-
-      if (acceptedAsset.asset_type === "uniforme") {
-        payload.size = editForm.size;
-        payload.hasCinta = editForm.hasCinta;
-        payload.hasJubon = editForm.hasJubon;
-        payload.hasGreguesco = editForm.hasGreguesco;
-      }
-
-      const response = await fetch(`/api/assets/${acceptedAsset.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (!response.ok || data?.error) {
-        throw new Error(data?.error || "No se pudo guardar la edición.");
-      }
-
-      setEditFeedback(data?.updated === false ? "No hubo cambios para guardar." : "Cambios guardados correctamente.");
-
-      // Once there is at least one persisted edit, this popup should not show again.
-      if (data?.updated !== false) {
-        await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ action: "mark-read", actingUserEmail: user.email }),
-        });
-      }
-
-      await loadDashboardAssets();
-
-      const params = new URLSearchParams();
-      params.set("viewerEmail", user.email);
-      const refreshed = await fetch(`/api/assets/${acceptedAsset.id}?${params.toString()}`);
-      const refreshedData = await refreshed.json();
-      if (refreshed.ok && !refreshedData?.error) {
-        const detail = refreshedData as AcceptedAssetDetail;
-        setAcceptedAsset(detail);
-        setEditForm({
-          name: String(detail.name || ""),
-          photoUrl: String(detail.photo_url || ""),
-          fabricationYear:
-            detail.fabrication_year === null || detail.fabrication_year === undefined
-              ? ""
-              : String(detail.fabrication_year),
-          currentValue:
-            detail.current_value === null || detail.current_value === undefined
-              ? ""
-              : String(detail.current_value),
-          status: String(detail.status || "en_uso"),
-          notes: String(detail.notes || ""),
-          instrumentType: String(detail.instrument_type || ""),
-          brand: String(detail.brand || ""),
-          issuer: String(detail.issuer || ""),
-          issueDate: String(detail.issue_date || ""),
-          documentType: String(detail.document_type || ""),
-          referenceCode: String(detail.reference_code || ""),
-          size: String(detail.size || ""),
-          hasCinta: Boolean(detail.has_cinta),
-          hasJubon: Boolean(detail.has_jubon),
-          hasGreguesco: Boolean(detail.has_greguesco),
-          tagsInput: Array.isArray(detail.tags) ? detail.tags.join(", ") : "",
-        });
-      }
-    } catch (error: any) {
-      setEditFeedback(error?.message || "No se pudo guardar la edición.");
-    } finally {
-      setIsSavingEdit(false);
+    if (acceptedAsset.asset_type === "instrumento") {
+      payload.instrumentType = editForm.instrumentType;
+      payload.brand = editForm.brand;
     }
+
+    if (acceptedAsset.asset_type === "reconocimiento") {
+      payload.issuer = editForm.issuer;
+      payload.issueDate = editForm.issueDate;
+      payload.documentType = editForm.documentType;
+      payload.referenceCode = editForm.referenceCode;
+      payload.reference_code = editForm.referenceCode;
+    }
+
+    if (acceptedAsset.asset_type === "uniforme") {
+      payload.size = editForm.size;
+      payload.hasCinta = editForm.hasCinta;
+      payload.hasJubon = editForm.hasJubon;
+      payload.hasGreguesco = editForm.hasGreguesco;
+    }
+
+    const response = await fetch(`/api/assets/${acceptedAsset.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok || data?.error) {
+      throw new Error(data?.error || "No se pudo guardar la edición.");
+    }
+
+    return data?.updated !== false;
   };
 
   const closeAcceptedPopup = () => {
@@ -545,20 +469,24 @@ export default function Dashboard() {
     setEditForm(emptyEditForm());
   };
 
-  const confirmAcceptedRequest = async () => {
+  const handleAcceptPopup = async () => {
     if (!acceptedNotice?.id || !user?.email || isSavingEdit) return;
     setIsSavingEdit(true);
     setEditFeedback("");
 
     try {
-      const response = await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "confirm-receipt", actingUserEmail: user.email }),
-      });
-      const data = await response.json();
-      if (!response.ok || data?.error) {
-        throw new Error(data?.error || "No se pudo confirmar la recepción.");
+      const wasUpdated = await saveAcceptedEdit();
+
+      if (!wasUpdated) {
+        const response = await fetch(`/api/asset-requests/${acceptedNotice.id}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "confirm-receipt", actingUserEmail: user.email }),
+        });
+        const data = await response.json();
+        if (!response.ok || data?.error) {
+          throw new Error(data?.error || "No se pudo confirmar la recepción.");
+        }
       }
 
       setAcceptedNotice(null);
@@ -567,7 +495,7 @@ export default function Dashboard() {
       await loadDashboardAssets();
       await loadRequests();
     } catch (error: any) {
-      setEditFeedback(error?.message || "No se pudo confirmar la recepción.");
+      setEditFeedback(error?.message || "No se pudo aceptar el activo.");
     } finally {
       setIsSavingEdit(false);
     }
@@ -616,9 +544,20 @@ export default function Dashboard() {
               <>
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.08em] text-lime-600">Solicitud aceptada</p>
-                  <h3 className="mt-2 text-2xl font-black text-slate-900">🔔 Activo pendiente de recepción</h3>
+                  <div className="mt-2 flex items-start justify-between gap-3">
+                    <h3 className="text-2xl font-black text-slate-900">🔔 Activo pendiente de recepción</h3>
+                    <button
+                      type="button"
+                      title="Activo editable"
+                      aria-label="Enfocar edición del activo"
+                      onClick={() => editNameInputRef.current?.focus()}
+                      className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700"
+                    >
+                      ✏️ Editar
+                    </button>
+                  </div>
                   <p className="mt-1 text-sm text-slate-600">
-                    Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Edita la información o confirma para asumir el activo.
+                    Se aceptó tu solicitud para <strong>{acceptedNotice.asset_name || "este activo"}</strong>. Revisa los datos antes de aceptar.
                   </p>
                 </div>
 
@@ -626,6 +565,7 @@ export default function Dashboard() {
                   <div>
                     <label className="block text-xs font-semibold uppercase tracking-wide text-slate-500">Nombre</label>
                     <input
+                      ref={editNameInputRef}
                       type="text"
                       value={editForm.name}
                       onChange={(event) => setEditForm((prev) => ({ ...prev, name: event.target.value }))}
@@ -815,10 +755,10 @@ export default function Dashboard() {
                   <button
                     type="button"
                     disabled={isSavingEdit}
-                    onClick={handleSaveEdit}
+                    onClick={handleAcceptPopup}
                     className="rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
                   >
-                    {isSavingEdit ? "Guardando..." : "Guardar cambios"}
+                    {isSavingEdit ? "Procesando..." : "Aceptar"}
                   </button>
                   <button
                     type="button"
@@ -827,14 +767,6 @@ export default function Dashboard() {
                     onClick={closeAcceptedPopup}
                   >
                     Ahora no
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isSavingEdit}
-                    className="rounded-2xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 ring-1 ring-slate-200 disabled:opacity-60"
-                    onClick={confirmAcceptedRequest}
-                  >
-                    Aceptar y asumir activo
                   </button>
                 </div>
               </>
