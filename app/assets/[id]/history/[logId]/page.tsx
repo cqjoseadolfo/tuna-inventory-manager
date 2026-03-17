@@ -98,8 +98,8 @@ export default function AssetEditLogDetailPage() {
       <section className="w-full max-w-4xl space-y-4">
         <PageHeader
           title="Detalle del cambio"
-          backHref={`/assets/${id}/history`}
-          backLabel="Volver al histórico"
+          backHref={`/assets/${id}`}
+          backLabel="Volver a la ficha del activo"
         />
 
         {error ? (

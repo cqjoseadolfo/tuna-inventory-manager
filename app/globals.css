@@ -874,13 +874,19 @@ html {
 }
 
 .assets-table-wrap {
-    overflow-x: hidden;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    scrollbar-gutter: stable both-edges;
     border-radius: 0.75rem;
     border: 1px solid rgba(148, 163, 184, 0.16);
 }
 
 .assets-table {
     width: 100%;
+    min-width: 760px;
     table-layout: fixed;
     border-collapse: collapse;
     font-size: 0.9rem;

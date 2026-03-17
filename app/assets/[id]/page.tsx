@@ -147,7 +147,6 @@ export default function AssetDetailPage() {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [editFeedback, setEditFeedback] = useState("");
   const [movementFilter, setMovementFilter] = useState("");
-  const [visibleEditLogCount, setVisibleEditLogCount] = useState(6);
   const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
     photoUrl: "",
@@ -189,7 +188,6 @@ export default function AssetDetailPage() {
         throw new Error(data.error || "No se pudo cargar el activo.");
       }
       setAsset(data);
-      setVisibleEditLogCount(6);
       setEditForm({
         name: data.name || "",
         photoUrl: data.photo_url || "",
@@ -295,9 +293,6 @@ export default function AssetDetailPage() {
     });
 
   const editLogsAll = Array.isArray(asset.editLogs) ? asset.editLogs : [];
-  const editLogsVisibleLimit = Math.min(20, editLogsAll.length);
-  const editLogsVisible = editLogsAll.slice(0, visibleEditLogCount);
-  const canLoadMoreEditLogs = visibleEditLogCount < editLogsVisibleLimit;
 
   const handleRequestAsset = async () => {
     if (!user?.email || !asset) return;
@@ -614,13 +609,13 @@ export default function AssetDetailPage() {
 
           {movementRows.length > 0 ? (
             <>
-              <div className="max-h-[420px] w-full overflow-y-auto overflow-x-hidden rounded-xl border border-slate-200">
-                <table className="w-full table-fixed text-left text-sm">
+              <div className="max-h-[420px] w-full overflow-auto rounded-xl border border-slate-200">
+                <table className="min-w-[720px] table-fixed text-left text-sm">
                   <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                     <tr>
+                      <th className="w-[24%] px-3 py-2">Fecha</th>
+                      <th className="w-[52%] px-3 py-2">Detalle</th>
                       <th className="w-[24%] px-3 py-2">Tipo</th>
-                      <th className="w-[48%] px-3 py-2">Detalle</th>
-                      <th className="w-[28%] px-3 py-2">Fecha</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -644,15 +639,15 @@ export default function AssetDetailPage() {
                             }
                           }}
                         >
-                          <td className="px-3 py-2 font-semibold text-slate-700">
-                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={typeMap[row.movement_type] || row.movement_type}>{typeMap[row.movement_type] || row.movement_type}</span>
+                          <td className="px-3 py-2 text-xs text-slate-500">
+                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={new Date(row.created_at).toLocaleString("es-PE")}>{new Date(row.created_at).toLocaleString("es-PE")}</span>
                           </td>
                           <td className="px-3 py-2 text-slate-700">
                             <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium" title={detail}>{detail}</p>
                             <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500" title={label}>{label}</p>
                           </td>
-                          <td className="px-3 py-2 text-xs text-slate-500">
-                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={new Date(row.created_at).toLocaleString("es-PE")}>{new Date(row.created_at).toLocaleString("es-PE")}</span>
+                          <td className="px-3 py-2 font-semibold text-slate-700">
+                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={typeMap[row.movement_type] || row.movement_type}>{typeMap[row.movement_type] || row.movement_type}</span>
                           </td>
                         </tr>
                       );
@@ -673,54 +668,56 @@ export default function AssetDetailPage() {
           <h2 className="mb-3 text-lg font-bold text-slate-900">Historial de cambios</h2>
           {editLogsAll.length > 0 ? (
             <>
-              <ul className="space-y-3">
-                {editLogsVisible.map((logItem) => {
-                const editor = logItem.editor_nickname || logItem.editor_name || logItem.editor_email || "Usuario";
-                const dateLabel = logItem.edited_at
-                  ? new Date(logItem.edited_at).toLocaleString("es-PE", {
-                      year: "numeric",
-                      month: "long",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })
-                  : "—";
-                return (
-                  <li key={logItem.id} className="rounded-2xl bg-slate-50 px-4 py-3 ring-1 ring-slate-100">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-lime-700">Se cambió {logItem.field_name}</p>
-                    <p className="mt-1 text-sm font-medium text-slate-700">
-                      {logItem.new_value || "(vacío)"}
-                    </p>
-                    <p className="mt-1 text-xs text-slate-500">Por {editor} · {dateLabel}</p>
-                    <Link
-                      href={`/assets/${asset.id}/history/${logItem.id}`}
-                      className="mt-2 inline-block text-xs font-semibold text-slate-700 underline-offset-2 hover:underline"
-                    >
-                      Ver detalle del cambio
-                    </Link>
-                  </li>
-                );
-                })}
-              </ul>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {canLoadMoreEditLogs ? (
-                  <button
-                    type="button"
-                    onClick={() => setVisibleEditLogCount(20)}
-                    className="rounded-2xl bg-white px-4 py-2 text-sm font-semibold text-slate-700 ring-1 ring-slate-200"
-                  >
-                    Cargar más
-                  </button>
-                ) : null}
-                {(asset.editLogsPagination?.hasMore || Number(asset.editLogsPagination?.total || 0) > 20) ? (
-                  <Link
-                    href={`/assets/${asset.id}/history`}
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    Ver histórico completo
-                  </Link>
-                ) : null}
+              <div className="max-h-[420px] w-full overflow-auto rounded-xl border border-slate-200">
+                <table className="min-w-[760px] table-fixed text-left text-sm">
+                  <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
+                    <tr>
+                      <th className="w-[24%] px-3 py-2">Fecha</th>
+                      <th className="w-[52%] px-3 py-2">Detalle</th>
+                      <th className="w-[24%] px-3 py-2">Tipo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {editLogsAll.map((logItem) => {
+                      const editor = logItem.editor_nickname || logItem.editor_name || logItem.editor_email || "Usuario";
+                      const fieldLabel = logItem.field_name || "Campo";
+                      const newValueLabel = logItem.new_value || "(vacío)";
+                      const detail = `${fieldLabel}: ${newValueLabel}`;
+                      return (
+                        <tr
+                          key={logItem.id}
+                          className="cursor-pointer border-t border-slate-100 align-top transition hover:bg-slate-50 focus-within:bg-slate-50"
+                          tabIndex={0}
+                          role="button"
+                          aria-label={`Ver detalle del cambio en ${fieldLabel}`}
+                          onClick={() => router.push(`/assets/${asset.id}/history/${logItem.id}`)}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              router.push(`/assets/${asset.id}/history/${logItem.id}`);
+                            }
+                          }}
+                        >
+                          <td className="px-3 py-2 text-xs text-slate-500">
+                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={new Date(logItem.edited_at).toLocaleString("es-PE")}>{new Date(logItem.edited_at).toLocaleString("es-PE")}</span>
+                          </td>
+                          <td className="px-3 py-2 text-slate-700">
+                            <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap font-medium" title={detail}>{detail}</p>
+                            <p className="max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-slate-500" title={editor}>{editor}</p>
+                          </td>
+                          <td className="px-3 py-2 font-semibold text-slate-700">
+                            <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap" title={fieldLabel}>{fieldLabel}</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
+              <p className="mt-2 text-xs text-slate-500">Toca un registro para ver el detalle completo.</p>
+              {(asset.editLogsPagination?.hasMore || Number(asset.editLogsPagination?.total || 0) > 20) ? (
+                <p className="mt-1 text-xs text-slate-500">Se muestran los últimos 20 cambios en esta ficha.</p>
+              ) : null}
             </>
           ) : (
             <div className="rounded-2xl bg-slate-50 px-4 py-6 text-center text-sm text-slate-400 ring-1 ring-slate-100">
