@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruISOString } from "@/app/lib/time";
-import { getAssetStatusesFromDb, normalizeStatusCode } from "@/app/lib/assetStatus";
+import { getAssetStatusesFromDb, normalizeStatusCode, updateAssetStatusWithFallback } from "@/app/lib/assetStatus";
 
 export const runtime = "edge";
 
@@ -437,9 +437,10 @@ export async function PATCH(request: Request, { params }: { params: { id: string
 
     if (canEditAsPendingReceiver) {
       await db
-        .prepare("UPDATE assets SET holder_user_id = ?, status = ? WHERE id = ?")
-        .bind(actingUser.id, "en_uso", assetId)
+        .prepare("UPDATE assets SET holder_user_id = ? WHERE id = ?")
+        .bind(actingUser.id, assetId)
         .run();
+      await updateAssetStatusWithFallback(db, assetId, "en_uso");
 
       await db
         .prepare(

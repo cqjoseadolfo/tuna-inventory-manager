@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruISOString } from "@/app/lib/time";
+import { updateAssetStatusWithFallback } from "@/app/lib/assetStatus";
 
 export const runtime = "edge";
 
@@ -85,9 +86,10 @@ export async function POST(request: Request, { params }: { params: { id: string 
       const now = getPeruISOString();
 
       await db
-        .prepare("UPDATE assets SET holder_user_id = ?, status = ? WHERE id = ?")
-        .bind(assetRequest.requester_user_id, "en_uso", assetRequest.asset_id)
+        .prepare("UPDATE assets SET holder_user_id = ? WHERE id = ?")
+        .bind(assetRequest.requester_user_id, assetRequest.asset_id)
         .run();
+      await updateAssetStatusWithFallback(db, assetRequest.asset_id, "en_uso");
 
       await db
         .prepare(
@@ -143,10 +145,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         .bind("cancelada", now, actingUser.id, now, requestId)
         .run();
 
-      await db
-        .prepare("UPDATE assets SET status = ? WHERE id = ?")
-        .bind("en_uso", assetRequest.asset_id)
-        .run();
+      await updateAssetStatusWithFallback(db, assetRequest.asset_id, "en_uso");
 
       try {
         await db
@@ -194,10 +193,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
       .run();
 
     if (action === "accept") {
-      await db
-        .prepare("UPDATE assets SET status = ? WHERE id = ?")
-        .bind("pendiente_recepcion", assetRequest.asset_id)
-        .run();
+      await updateAssetStatusWithFallback(db, assetRequest.asset_id, "pendiente_recepcion");
 
       try {
         await db
@@ -222,10 +218,7 @@ export async function POST(request: Request, { params }: { params: { id: string 
         }
       }
     } else {
-      await db
-        .prepare("UPDATE assets SET status = ? WHERE id = ?")
-        .bind("en_uso", assetRequest.asset_id)
-        .run();
+      await updateAssetStatusWithFallback(db, assetRequest.asset_id, "en_uso");
 
       try {
         await db
