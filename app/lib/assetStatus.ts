@@ -19,12 +19,6 @@ const LEGACY_STATUS_MAP: Record<string, string> = {
   en_reparacion: "mantenimiento",
 };
 
-const NEW_TO_LEGACY_STATUS_MAP: Record<string, string> = {
-  en_uso: "bajo_responsabilidad",
-  mantenimiento: "en_reparacion",
-  pendiente_recepcion: "solicitado",
-};
-
 export const normalizeStatusCode = (value: string) => {
   const normalized = String(value || "").trim().toLowerCase();
   return LEGACY_STATUS_MAP[normalized] || normalized;
@@ -47,32 +41,18 @@ export async function hasStatusCatalogTable(db: any): Promise<boolean> {
   }
 }
 
-export const getStatusWriteCandidates = (status: string, preferLegacy = false) => {
-  const normalized = normalizeStatusCode(status);
-  const legacyCandidate = NEW_TO_LEGACY_STATUS_MAP[normalized];
-
-  if (!legacyCandidate) return [normalized];
-  return preferLegacy ? [legacyCandidate, normalized] : [normalized, legacyCandidate];
-};
-
 export async function updateAssetStatusWithFallback(db: any, assetId: string, desiredStatus: string): Promise<string> {
-  const useLegacyFirst = !(await hasStatusCatalogTable(db));
-  const candidates = getStatusWriteCandidates(desiredStatus, useLegacyFirst);
+  const normalized = normalizeStatusCode(desiredStatus);
 
-  let lastError: unknown = null;
-  for (const status of candidates) {
-    try {
-      await db.prepare("UPDATE assets SET status = ? WHERE id = ?").bind(status, assetId).run();
-      return status;
-    } catch (error) {
-      lastError = error;
-      if (!isStatusConstraintError(error)) {
-        throw error;
-      }
+  try {
+    await db.prepare("UPDATE assets SET status = ? WHERE id = ?").bind(normalized, assetId).run();
+    return normalized;
+  } catch (error) {
+    if (isStatusConstraintError(error)) {
+      throw new Error(`Estado '${normalized}' no es válido. Usa: en_uso, disponible, solicitado, pendiente_recepcion, mantenimiento, baja`);
     }
+    throw error;
   }
-
-  throw lastError || new Error("No se pudo actualizar el estado del activo");
 }
 
 export const getDefaultAssetStatusCode = (statuses: AssetStatusOption[]) => {
