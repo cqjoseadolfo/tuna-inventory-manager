@@ -821,9 +821,10 @@ export default function Dashboard() {
         >
           <div className="mb-1 flex items-center gap-3 border-b border-slate-200 pb-3">
             <img
-              src={user.picture}
+              src={profileImageUrl || user.picture}
               alt="Avatar"
               className="h-11 w-11 rounded-full border-2 border-slate-200 object-cover"
+              referrerPolicy="no-referrer"
             />
             <div className="min-w-0">
               <span className="block truncate text-lg font-semibold text-slate-900">{user.name}</span>
@@ -963,18 +964,18 @@ export default function Dashboard() {
         </section>
 
         <section className="grid gap-3">
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid w-full grid-cols-3 gap-1 rounded-[1.4rem] bg-slate-100 p-1 ring-1 ring-slate-200">
             <button
               type="button"
               onClick={() => setActiveFilter("all")}
-              className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
+              className={`w-full rounded-[1.1rem] px-2 py-3 text-center transition ${
                 activeFilter === "all"
-                  ? "bg-[#2400FF] text-white ring-[#2400FF] shadow-md"
-                  : "bg-[#2400FF] text-blue-100 ring-[#2400FF] shadow-sm opacity-90"
+                  ? "bg-[#2400FF] text-white shadow-md"
+                  : "bg-transparent text-slate-600 hover:bg-white/70"
               }`}
             >
               <span className="block text-3xl font-black">{totalAssets}</span>
-              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "all" ? "text-blue-100" : "text-blue-200"}`}>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "all" ? "text-blue-100" : "text-slate-500"}`}>
                 Activos
               </h4>
             </button>
@@ -982,14 +983,14 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => setActiveFilter("mine")}
-              className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
+              className={`w-full rounded-[1.1rem] px-2 py-3 text-center transition ${
                 activeFilter === "mine"
-                  ? "bg-[#2400FF] text-white ring-[#2400FF] shadow-md"
-                  : "bg-[#2400FF] text-blue-100 ring-[#2400FF] shadow-sm opacity-90"
+                  ? "bg-[#2400FF] text-white shadow-md"
+                  : "bg-transparent text-slate-600 hover:bg-white/70"
               }`}
             >
               <span className="block text-3xl font-black">{inPossessionCount}</span>
-              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-blue-100" : "text-blue-200"}`}>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-blue-100" : "text-slate-500"}`}>
                   Mis activos
               </h4>
             </button>
@@ -997,14 +998,14 @@ export default function Dashboard() {
             <button
               type="button"
               onClick={() => setActiveFilter("requested")}
-              className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
+              className={`w-full rounded-[1.1rem] px-2 py-3 text-center transition ${
                 activeFilter === "requested"
-                  ? "bg-[#2400FF] text-white ring-[#2400FF] shadow-md"
-                  : "bg-[#2400FF] text-blue-100 ring-[#2400FF] shadow-sm opacity-90"
+                  ? "bg-[#2400FF] text-white shadow-md"
+                  : "bg-transparent text-slate-600 hover:bg-white/70"
               }`}
             >
               <span className="block text-3xl font-black">{requestedCount}</span>
-              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "requested" ? "text-blue-100" : "text-blue-200"}`}>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "requested" ? "text-blue-100" : "text-slate-500"}`}>
                 Solicitados
               </h4>
             </button>
