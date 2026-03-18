@@ -912,22 +912,22 @@ export default function Dashboard() {
             <Link
               href="/assets/new"
               className="group flex min-h-44 items-center justify-center rounded-[2rem] px-4 py-5 text-center transition hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #007EFF, #2400FF)", boxShadow: "0 16px 30px rgba(36,0,255,0.30)" }}
+              style={{ background: "#FFBF00", boxShadow: "0 16px 30px rgba(255,191,0,0.32)" }}
             >
               <div className="flex flex-col items-center justify-center gap-3">
-                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/28 text-2xl leading-none text-white">➕</span>
-                <h3 className="text-base font-extrabold leading-tight text-white">Registrar activo</h3>
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-black/15 text-2xl leading-none text-slate-900">➕</span>
+                <h3 className="text-base font-extrabold leading-tight text-slate-900">Registrar activo</h3>
               </div>
             </Link>
 
             <Link
               href="/assets/search"
               className="group flex min-h-44 items-center justify-center rounded-[2rem] px-4 py-5 text-center transition hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #807040, #FFBF00)", boxShadow: "0 16px 30px rgba(128,112,64,0.30)" }}
+              style={{ background: "#807040", boxShadow: "0 16px 30px rgba(128,112,64,0.30)" }}
             >
               <div className="flex flex-col items-center justify-center gap-3">
-                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/30 text-2xl leading-none text-slate-900">🔎</span>
-                <h3 className="text-base font-extrabold leading-tight text-slate-900">Consultar activo</h3>
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/25 text-2xl leading-none text-white">🔎</span>
+                <h3 className="text-base font-extrabold leading-tight text-white">Consultar activo</h3>
               </div>
             </Link>
           </div>
@@ -936,7 +936,7 @@ export default function Dashboard() {
         <section>
           <article
             className="relative min-h-[180px] overflow-visible rounded-[2rem] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(36,0,255,0.24)]"
-            style={{ background: "linear-gradient(135deg, #2400FF, #007EFF)" }}
+            style={{ background: "#007EFF" }}
           >
             <div className="flex h-full flex-col justify-between gap-3">
               <div>
@@ -969,12 +969,12 @@ export default function Dashboard() {
               onClick={() => setActiveFilter("all")}
               className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
                 activeFilter === "all"
-                  ? "bg-slate-900 text-white ring-slate-900 shadow-md"
-                  : "bg-white text-slate-900 ring-slate-100 shadow-sm"
+                  ? "bg-[#2400FF] text-white ring-[#2400FF] shadow-md"
+                  : "bg-[#2400FF] text-blue-100 ring-[#2400FF] shadow-sm opacity-90"
               }`}
             >
               <span className="block text-3xl font-black">{totalAssets}</span>
-              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "all" ? "text-slate-300" : "text-slate-500"}`}>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "all" ? "text-blue-100" : "text-blue-200"}`}>
                 Activos
               </h4>
             </button>
@@ -984,12 +984,12 @@ export default function Dashboard() {
               onClick={() => setActiveFilter("mine")}
               className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
                 activeFilter === "mine"
-                  ? "bg-slate-900 text-white ring-slate-900 shadow-md"
-                  : "bg-white text-slate-900 ring-slate-100 shadow-sm"
+                  ? "bg-[#2400FF] text-white ring-[#2400FF] shadow-md"
+                  : "bg-[#2400FF] text-blue-100 ring-[#2400FF] shadow-sm opacity-90"
               }`}
             >
               <span className="block text-3xl font-black">{inPossessionCount}</span>
-              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-slate-300" : "text-slate-500"}`}>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-blue-100" : "text-blue-200"}`}>
                   Mis activos
               </h4>
             </button>
@@ -999,12 +999,12 @@ export default function Dashboard() {
               onClick={() => setActiveFilter("requested")}
               className={`rounded-[1.6rem] px-3 py-4 text-center ring-1 transition ${
                 activeFilter === "requested"
-                  ? "bg-slate-900 text-white ring-slate-900 shadow-md"
-                  : "bg-white text-slate-900 ring-slate-100 shadow-sm"
+                  ? "bg-[#2400FF] text-white ring-[#2400FF] shadow-md"
+                  : "bg-[#2400FF] text-blue-100 ring-[#2400FF] shadow-sm opacity-90"
               }`}
             >
               <span className="block text-3xl font-black">{requestedCount}</span>
-              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "requested" ? "text-slate-300" : "text-slate-500"}`}>
+              <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "requested" ? "text-blue-100" : "text-blue-200"}`}>
                 Solicitados
               </h4>
             </button>
@@ -1015,7 +1015,7 @@ export default function Dashboard() {
           )}
 
           {activeFilter === "mine" ? (
-            <article className="rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
+            <article className="overflow-hidden rounded-[2rem] bg-white p-4 shadow-sm ring-1 ring-slate-100">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <h3 className="text-base font-bold text-slate-900">Activos bajo mi responsabilidad</h3>
                 <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
@@ -1028,14 +1028,13 @@ export default function Dashboard() {
                   No tienes activos en uso actualmente.
                 </p>
               ) : (
-                <div className="max-h-[380px] overflow-auto rounded-xl border border-slate-200">
-                  <table className="min-w-[760px] table-fixed text-left text-sm">
+                <div className="max-h-[380px] w-full max-w-full overflow-x-auto overflow-y-auto rounded-xl border border-slate-200">
+                  <table className="min-w-[560px] table-fixed text-left text-sm">
                     <thead className="sticky top-0 bg-slate-50 text-xs uppercase tracking-wide text-slate-500">
                       <tr>
-                        <th className="w-[18%] px-3 py-2">Foto</th>
-                        <th className="w-[20%] px-3 py-2">Estado</th>
-                        <th className="w-[26%] px-3 py-2">Responsable</th>
-                        <th className="w-[36%] px-3 py-2">Descripción</th>
+                        <th className="w-[24%] px-3 py-2">Foto</th>
+                        <th className="w-[24%] px-3 py-2">Estado</th>
+                        <th className="w-[52%] px-3 py-2">Responsable</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1073,10 +1072,6 @@ export default function Dashboard() {
                                 )}
                                 <span className="truncate text-sm font-medium text-slate-700">{holder}</span>
                               </div>
-                            </td>
-                            <td className="px-3 py-2 text-slate-700">
-                              <p className="truncate font-medium">{item.name || "Activo"}</p>
-                              <p className="truncate text-xs text-slate-500">{item.notes || "Sin descripción"}</p>
                             </td>
                           </tr>
                         );

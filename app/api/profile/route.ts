@@ -17,7 +17,10 @@ type UserRow = {
   baptism_date: string | null;
   bio: string | null;
   profession: string | null;
+  user_rank: string | null;
 };
+
+const ALLOWED_RANKS = new Set(["aspirante", "pardillo", "tuno"]);
 
 const normalizeString = (value: unknown) => {
   if (value === null || value === undefined) return null;
@@ -39,6 +42,7 @@ const toResponseUser = (user: UserRow) => ({
   baptismDate: user.baptism_date,
   bio: user.bio,
   profession: user.profession,
+  userRank: user.user_rank,
 });
 
 export async function GET(request: Request) {
@@ -66,7 +70,8 @@ export async function GET(request: Request) {
           dni,
           baptism_date,
           bio,
-          profession
+          profession,
+          user_rank
         FROM users
         WHERE LOWER(email) = ?`
       )
@@ -108,7 +113,8 @@ export async function PATCH(request: Request) {
           dni,
           baptism_date,
           bio,
-          profession
+          profession,
+          user_rank
         FROM users
         WHERE LOWER(email) = ?`
       )
@@ -128,6 +134,11 @@ export async function PATCH(request: Request) {
     const nextBaptismDate = has("baptismDate") ? normalizeString(body?.baptismDate) : current.baptism_date;
     const nextBio = has("bio") ? normalizeString(body?.bio) : current.bio;
     const nextProfession = has("profession") ? normalizeString(body?.profession) : current.profession;
+    const nextUserRankRaw = has("userRank") ? normalizeString(body?.userRank)?.toLowerCase() || null : current.user_rank;
+    if (has("userRank") && nextUserRankRaw && !ALLOWED_RANKS.has(nextUserRankRaw)) {
+      return NextResponse.json({ error: "userRank inválido. Usa: aspirante, pardillo o tuno" }, { status: 400 });
+    }
+    const nextUserRank = nextUserRankRaw;
     const nextProfilePictureUrl = has("profilePictureUrl")
       ? normalizeString(body?.profilePictureUrl)
       : current.profile_picture_url;
@@ -147,6 +158,7 @@ export async function PATCH(request: Request) {
              baptism_date = ?,
              bio = ?,
              profession = ?,
+             user_rank = ?,
              profile_picture_url = ?,
              full_name = ?
          WHERE id = ?`
@@ -159,6 +171,7 @@ export async function PATCH(request: Request) {
         nextBaptismDate,
         nextBio,
         nextProfession,
+        nextUserRank,
         nextProfilePictureUrl,
         nextFullName,
         current.id
@@ -180,7 +193,8 @@ export async function PATCH(request: Request) {
           dni,
           baptism_date,
           bio,
-          profession
+          profession,
+          user_rank
         FROM users
         WHERE id = ?`
       )

@@ -18,6 +18,7 @@ type ProfileResponse = {
   baptismDate: string | null;
   bio: string | null;
   profession: string | null;
+  userRank: string | null;
 };
 
 type FormState = {
@@ -28,6 +29,7 @@ type FormState = {
   baptismDate: string;
   bio: string;
   profession: string;
+  userRank: string;
   profilePictureUrl: string;
 };
 
@@ -39,6 +41,7 @@ const emptyForm: FormState = {
   baptismDate: "",
   bio: "",
   profession: "",
+  userRank: "",
   profilePictureUrl: "",
 };
 
@@ -84,6 +87,7 @@ export default function ProfilePage() {
           baptismDate: profileData.baptismDate || "",
           bio: profileData.bio || "",
           profession: profileData.profession || "",
+          userRank: profileData.userRank || "",
           profilePictureUrl: profileData.profilePictureUrl || "",
         });
       } catch (loadError: any) {
@@ -163,6 +167,7 @@ export default function ProfilePage() {
           baptismDate: form.baptismDate,
           bio: form.bio,
           profession: form.profession,
+          userRank: form.userRank,
           profilePictureUrl: form.profilePictureUrl,
         }),
       });
@@ -184,6 +189,7 @@ export default function ProfilePage() {
         baptismDate: updated.baptismDate,
         bio: updated.bio,
         profession: updated.profession,
+        userRank: updated.userRank,
       });
       setSuccess("Perfil actualizado correctamente.");
     } catch (saveError: any) {
@@ -308,6 +314,19 @@ export default function ProfilePage() {
                   className="rounded-xl border border-slate-200 px-3 py-2"
                   placeholder="Ej. Músico, docente..."
                 />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Rango
+                <select
+                  value={form.userRank}
+                  onChange={(event) => updateField("userRank", event.target.value)}
+                  className="rounded-xl border border-slate-200 px-3 py-2"
+                >
+                  <option value="">Sin definir</option>
+                  <option value="aspirante">Aspirante</option>
+                  <option value="pardillo">Pardillo</option>
+                  <option value="tuno">Tuno</option>
+                </select>
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-2">
                 Biografía / descripción

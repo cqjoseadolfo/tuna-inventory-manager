@@ -67,7 +67,8 @@ export async function POST(request: Request) {
         dni: user.dni || null,
         baptismDate: user.baptism_date || null,
         bio: user.bio || null,
-        profession: user.profession || null
+        profession: user.profession || null,
+        userRank: user.user_rank || null
       },
       isNewUser,
       sessionId: logId

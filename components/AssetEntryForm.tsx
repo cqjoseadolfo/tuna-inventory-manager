@@ -397,7 +397,7 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
     <div>
       <label className="mb-2 block text-sm font-medium text-slate-700">Foto principal</label>
       <label className="block cursor-pointer">
-        <input className="hidden" type="file" accept="image/*" capture="environment" onChange={handlePhotoChange} />
+        <input className="hidden" type="file" accept="image/*" onChange={handlePhotoChange} />
         {previewUrl ? (
           <div className="overflow-hidden rounded-[1.75rem] bg-slate-50 ring-1 ring-slate-200">
             <img src={previewUrl} alt="Vista previa" className="h-64 w-full object-cover" />

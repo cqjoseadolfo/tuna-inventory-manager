@@ -16,6 +16,7 @@ export interface UserProfile {
   baptismDate?: string | null;
   bio?: string | null;
   profession?: string | null;
+  userRank?: string | null;
   isNewUser?: boolean;
   token?: string;
   sessionId?: string;
@@ -119,6 +120,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         baptismDate: syncData.user.baptismDate || null,
         bio: syncData.user.bio || null,
         profession: syncData.user.profession || null,
+        userRank: syncData.user.userRank || null,
         isNewUser: syncData.isNewUser || !syncData.user.nickname,
         sessionId: syncData.sessionId,
         token: accessToken,

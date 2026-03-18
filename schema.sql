@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS users (
     baptism_date TEXT,
     bio TEXT,
     profession TEXT,
+    user_rank TEXT,
     nickname TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
