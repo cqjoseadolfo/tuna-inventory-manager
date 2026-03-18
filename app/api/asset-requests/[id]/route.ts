@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruISOString } from "@/app/lib/time";
 import { updateAssetStatusWithFallback } from "@/app/lib/assetStatus";
+import { sendPendingActionEmail } from "@/app/lib/email";
 
 export const runtime = "edge";
 
@@ -194,6 +195,30 @@ export async function POST(request: Request, { params }: { params: { id: string 
 
     if (action === "accept") {
       await updateAssetStatusWithFallback(db, assetRequest.asset_id, "pendiente_recepcion");
+
+      try {
+        const requesterInfo = await db
+          .prepare(
+            `SELECT u.email, u.nickname, u.full_name, a.name AS asset_name
+             FROM users u
+             JOIN assets a ON a.id = ?
+             WHERE u.id = ?`
+          )
+          .bind(assetRequest.asset_id, assetRequest.requester_user_id)
+          .first<any>();
+
+        if (requesterInfo?.email) {
+          await sendPendingActionEmail({
+            toEmail: String(requesterInfo.email),
+            toName: String(requesterInfo.nickname || requesterInfo.full_name || "").trim() || null,
+            assetName: String(requesterInfo.asset_name || "Activo"),
+            actionTitle: "Confirmar recepción",
+            actionDetail: "Tu solicitud fue aceptada. Ingresa a Solicitudes para confirmar la recepción del activo.",
+          });
+        }
+      } catch (error) {
+        console.error("No se pudo enviar correo de confirmación de recepción:", error);
+      }
 
       try {
         await db

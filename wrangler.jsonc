@@ -24,6 +24,8 @@
     "AWS_REGION": "us-east-2",
     "AWS_S3_BUCKET": "tuna-inventory-manager-tfciff-arequipa-peru-tconan",
     "AWS_S3_PUBLIC_BASE_URL": "https://tuna-inventory-manager-tfciff-arequipa-peru-tconan.s3.us-east-2.amazonaws.com",
+    "APP_BASE_URL": "https://tuna-inventory-manager.cq-joseadolfo.workers.dev",
+    "EMAIL_NOTIFICATIONS_ENABLED": "true",
     "AI_PROVIDER": "gemini",
     "GEMINI_MODEL": "gemini-3.1-flash-lite-preview",
     "OPENAI_BASE_URL": "https://api.openai.com/v1",

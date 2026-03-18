@@ -24,6 +24,12 @@ interface Env {
   AI_PROVIDER?: string;
   GEMINI_API_KEY?: string;
   GEMINI_MODEL?: string;
+  APP_BASE_URL?: string;
+  EMAIL_NOTIFICATIONS_ENABLED?: string;
+  GMAIL_CLIENT_ID?: string;
+  GMAIL_CLIENT_SECRET?: string;
+  GMAIL_REFRESH_TOKEN?: string;
+  GMAIL_SENDER_EMAIL?: string;
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -64,6 +70,12 @@ export default {
     (globalThis as any).AI_PROVIDER = env.AI_PROVIDER;
     (globalThis as any).GEMINI_API_KEY = env.GEMINI_API_KEY;
     (globalThis as any).GEMINI_MODEL = env.GEMINI_MODEL;
+    (globalThis as any).APP_BASE_URL = env.APP_BASE_URL;
+    (globalThis as any).EMAIL_NOTIFICATIONS_ENABLED = env.EMAIL_NOTIFICATIONS_ENABLED;
+    (globalThis as any).GMAIL_CLIENT_ID = env.GMAIL_CLIENT_ID;
+    (globalThis as any).GMAIL_CLIENT_SECRET = env.GMAIL_CLIENT_SECRET;
+    (globalThis as any).GMAIL_REFRESH_TOKEN = env.GMAIL_REFRESH_TOKEN;
+    (globalThis as any).GMAIL_SENDER_EMAIL = env.GMAIL_SENDER_EMAIL;
 
     // Image optimization via Cloudflare Images binding.
     // The parseImageParams validation inside handleImageOptimization

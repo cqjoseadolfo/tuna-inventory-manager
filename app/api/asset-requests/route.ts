@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruISOString } from "@/app/lib/time";
+import { sendPendingActionEmail } from "@/app/lib/email";
 
 export const runtime = "edge";
 
@@ -121,8 +122,12 @@ export async function POST(request: Request) {
 
     const asset = await db
       .prepare(
-        `SELECT id, name, holder_user_id, status
-         FROM assets
+        `SELECT a.id, a.name, a.holder_user_id, a.status,
+                holder.email AS holder_email,
+                holder.nickname AS holder_nickname,
+                holder.full_name AS holder_name
+         FROM assets a
+         LEFT JOIN users holder ON holder.id = a.holder_user_id
          WHERE id = ?`
       )
       .bind(assetId)
@@ -179,6 +184,20 @@ export async function POST(request: Request) {
       .prepare("UPDATE assets SET status = ? WHERE id = ?")
       .bind("solicitado", assetId)
       .run();
+
+    try {
+      if (asset.holder_email) {
+        await sendPendingActionEmail({
+          toEmail: String(asset.holder_email),
+          toName: String(asset.holder_nickname || asset.holder_name || "").trim() || null,
+          assetName: String(asset.name || "Activo"),
+          actionTitle: "Revisar nueva solicitud",
+          actionDetail: `${requester.nickname || requester.full_name || requester.email} ha solicitado este activo.`,
+        });
+      }
+    } catch (error) {
+      console.error("No se pudo enviar correo de solicitud pendiente:", error);
+    }
 
     try {
       await db

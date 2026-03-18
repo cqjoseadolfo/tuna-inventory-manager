@@ -386,6 +386,10 @@ docker compose exec app sh
 | `AWS_SECRET_ACCESS_KEY` | Clave secreta S3 |
 | `GEMINI_API_KEY` | API Key de Google Gemini |
 | `OPENAI_API_KEY` | API Key de OpenAI (alternativa a Gemini) |
+| `GMAIL_CLIENT_ID` | OAuth Client ID para Gmail API |
+| `GMAIL_CLIENT_SECRET` | OAuth Client Secret para Gmail API |
+| `GMAIL_REFRESH_TOKEN` | Refresh token con scope de envío por Gmail |
+| `GMAIL_SENDER_EMAIL` | Cuenta Gmail remitente (la que envía) |
 
 ### Variables públicas del Worker (en `wrangler.jsonc`)
 
@@ -394,6 +398,8 @@ docker compose exec app sh
 | `AWS_REGION` | `us-east-2` |
 | `AWS_S3_BUCKET` | nombre del bucket |
 | `AWS_S3_PUBLIC_BASE_URL` | URL base pública del bucket |
+| `APP_BASE_URL` | URL pública de la app (para enlaces en correos) |
+| `EMAIL_NOTIFICATIONS_ENABLED` | `true` / `false` para activar correos |
 | `AI_PROVIDER` | `gemini` (o `openai`) |
 | `GEMINI_MODEL` | `gemini-3.1-flash-lite-preview` |
 | `OPENAI_BASE_URL` | `https://api.openai.com/v1` |
