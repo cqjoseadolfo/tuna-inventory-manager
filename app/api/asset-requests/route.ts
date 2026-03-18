@@ -128,7 +128,7 @@ export async function POST(request: Request) {
                 holder.full_name AS holder_name
          FROM assets a
          LEFT JOIN users holder ON holder.id = a.holder_user_id
-         WHERE id = ?`
+        WHERE a.id = ?`
       )
       .bind(assetId)
       .first<any>();
