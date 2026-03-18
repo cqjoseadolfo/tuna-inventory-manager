@@ -377,9 +377,22 @@ export default function Dashboard() {
   }, [acceptedNotice?.id, acceptedNotice?.asset_id, user?.email]);
 
   const isMine = (item: AssetItem) => {
-    const holder = String(item.holderEmail || "").toLowerCase().trim();
+    const holderEmail = String(item.holderEmail || "").toLowerCase().trim();
+    const holderNickname = String(item.holderNickname || "").toLowerCase().trim();
+    const holderName = String(item.holderName || "").toLowerCase().trim();
+    const holderDisplayName = String(item.holderDisplayName || "").toLowerCase().trim();
+    const userEmail = String(user.email || "").toLowerCase().trim();
+    const userNickname = String(user.nickname || "").toLowerCase().trim();
+    const userName = String(user.name || "").toLowerCase().trim();
     const normalizedStatus = String(item.status || "").toLowerCase();
-    return normalizedStatus === "en_uso" && holder === user.email.toLowerCase().trim();
+
+    const matchesByEmail = holderEmail.length > 0 && holderEmail === userEmail;
+    const matchesByIdentity = [holderNickname, holderName, holderDisplayName]
+      .filter(Boolean)
+      .some((value) => (userNickname && value === userNickname) || (userName && value === userName));
+
+    // Ownership is determined by current holder; exclude only assets marked as baja.
+    return normalizedStatus !== "baja" && (matchesByEmail || matchesByIdentity);
   };
 
   const totalAssets = assets.length;
@@ -428,7 +441,7 @@ export default function Dashboard() {
       : "#e2e8f0 0% 100%";
 
   const activeFilterLabel =
-    activeFilter === "mine" ? "En posesión" : activeFilter === "requested" ? "Solicitados" : "Activos";
+    activeFilter === "mine" ? "Mis activos" : activeFilter === "requested" ? "Solicitados" : "Activos";
   const hasPendingApproval = unreadIncomingCount > 0 || incomingRequests.length > 0;
 
   const saveAcceptedEdit = async () => {
@@ -873,17 +886,19 @@ export default function Dashboard() {
       </div>
 
       <section className="mb-5 flex items-stretch gap-3 pr-14 pt-4 md:pr-16">
-        <div className="grid h-[84px] w-[84px] shrink-0 place-items-center overflow-hidden rounded-2xl bg-slate-100 ring-1 ring-slate-200">
-          {profileImageUrl ? (
-            <img
-              src={profileImageUrl}
-              alt={displayName}
-              className="h-full w-full object-cover"
-              referrerPolicy="no-referrer"
-            />
-          ) : (
-            <span className="text-2xl font-black text-slate-500">{displayName.charAt(0).toUpperCase()}</span>
-          )}
+        <div className="grid h-[84px] w-[84px] shrink-0 place-items-center rounded-full bg-gradient-to-br from-[#FFBF00] via-[#007EFF] to-[#2400FF] p-[3px] shadow-[0_10px_24px_rgba(36,0,255,0.28)]">
+          <div className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-white ring-1 ring-white/70">
+            {profileImageUrl ? (
+              <img
+                src={profileImageUrl}
+                alt={displayName}
+                className="h-full w-full rounded-full object-cover"
+                referrerPolicy="no-referrer"
+              />
+            ) : (
+              <span className="text-2xl font-black text-slate-500">{displayName.charAt(0).toUpperCase()}</span>
+            )}
+          </div>
         </div>
         <div className="flex min-h-[84px] flex-col justify-center">
           <p className="text-base font-medium text-slate-600">Buenos días,</p>
@@ -897,10 +912,10 @@ export default function Dashboard() {
             <Link
               href="/assets/new"
               className="group flex min-h-44 items-center justify-center rounded-[2rem] px-4 py-5 text-center transition hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #004aad, #0062e0)", boxShadow: "0 16px 30px rgba(0,74,173,0.30)" }}
+              style={{ background: "linear-gradient(135deg, #007EFF, #2400FF)", boxShadow: "0 16px 30px rgba(36,0,255,0.30)" }}
             >
               <div className="flex flex-col items-center justify-center gap-3">
-                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/25 text-2xl leading-none text-white">➕</span>
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/28 text-2xl leading-none text-white">➕</span>
                 <h3 className="text-base font-extrabold leading-tight text-white">Registrar activo</h3>
               </div>
             </Link>
@@ -908,24 +923,27 @@ export default function Dashboard() {
             <Link
               href="/assets/search"
               className="group flex min-h-44 items-center justify-center rounded-[2rem] px-4 py-5 text-center transition hover:-translate-y-0.5"
-              style={{ background: "linear-gradient(135deg, #a8892e, #cbb155)", boxShadow: "0 16px 30px rgba(203,177,85,0.30)" }}
+              style={{ background: "linear-gradient(135deg, #807040, #FFBF00)", boxShadow: "0 16px 30px rgba(128,112,64,0.30)" }}
             >
               <div className="flex flex-col items-center justify-center gap-3">
-                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/25 text-2xl leading-none text-white">🔎</span>
-                <h3 className="text-base font-extrabold leading-tight text-white">Consultar activo</h3>
+                <span className="grid h-14 w-14 place-items-center rounded-full bg-white/30 text-2xl leading-none text-slate-900">🔎</span>
+                <h3 className="text-base font-extrabold leading-tight text-slate-900">Consultar activo</h3>
               </div>
             </Link>
           </div>
         </section>
 
         <section>
-          <article className="relative min-h-[180px] overflow-visible rounded-[2rem] bg-[#0b1338] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(15,23,42,0.20)]">
+          <article
+            className="relative min-h-[180px] overflow-visible rounded-[2rem] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(36,0,255,0.24)]"
+            style={{ background: "linear-gradient(135deg, #2400FF, #007EFF)" }}
+          >
             <div className="flex h-full flex-col justify-between gap-3">
               <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-lime-300">Newsletter</p>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFBF00]">Newsletter</p>
                 <h3 className="mt-2 text-[48px] font-black leading-[0.95]">Plan 2026</h3>
               </div>
-              <p className="pr-[110px] text-[15px] leading-[1.3] text-slate-300">Sigue los ultimos cambios de los estatutos publicados.</p>
+              <p className="pr-[110px] text-[15px] leading-[1.3] text-blue-50">Sigue los ultimos cambios de los estatutos publicados.</p>
             </div>
 
             {!planImageBroken ? (
@@ -972,7 +990,7 @@ export default function Dashboard() {
             >
               <span className="block text-3xl font-black">{inPossessionCount}</span>
               <h4 className={`mt-1 text-[11px] font-semibold uppercase tracking-wide ${activeFilter === "mine" ? "text-slate-300" : "text-slate-500"}`}>
-                  En uso
+                  Mis activos
               </h4>
             </button>
 

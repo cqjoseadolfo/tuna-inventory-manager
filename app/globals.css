@@ -922,11 +922,11 @@ html {
 }
 
 .assets-col-photo {
-    width: 126px;
+    width: 108px;
 }
 
 .assets-col-status {
-    width: 140px;
+    width: 120px;
 }
 
 .assets-col-holder {
@@ -1002,12 +1002,12 @@ html {
 
 .col-th-photo,
 .col-photo {
-    width: 126px;
+    width: 108px;
 }
 
 .grid-thumb {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     object-fit: cover;
     border-radius: 0.75rem;
     border: 1px solid rgb(203 213 225);
@@ -1022,8 +1022,8 @@ html {
 }
 
 .grid-thumb-empty {
-    width: 80px;
-    height: 80px;
+    width: 64px;
+    height: 64px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1103,7 +1103,7 @@ html {
 
 .assets-table thead th:nth-child(2),
 .assets-table tbody td:nth-child(2) {
-    width: 140px;
+    width: 120px;
 }
 
 .assets-table thead th:nth-child(3),

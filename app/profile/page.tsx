@@ -224,14 +224,18 @@ export default function ProfilePage() {
         <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <article className="rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-100">
             <h2 className="text-lg font-bold text-slate-900">Foto de perfil</h2>
-            <div className="mt-4 overflow-hidden rounded-2xl bg-slate-50 ring-1 ring-slate-200">
-              {previewPicture ? (
-                <img src={previewPicture} alt="Foto de perfil" className="h-56 w-full object-cover" />
-              ) : (
-                <div className="grid h-56 w-full place-items-center text-5xl font-black text-slate-400">
-                  {String((profile?.nickname || user.nickname || user.name || "U").charAt(0)).toUpperCase()}
+            <div className="mt-4 flex justify-center">
+              <div className="grid h-56 w-56 place-items-center rounded-full bg-gradient-to-br from-[#FFBF00] via-[#007EFF] to-[#2400FF] p-[4px] shadow-[0_16px_34px_rgba(36,0,255,0.25)]">
+                <div className="grid h-full w-full place-items-center overflow-hidden rounded-full bg-slate-50 ring-1 ring-white/80">
+                  {previewPicture ? (
+                    <img src={previewPicture} alt="Foto de perfil" className="h-full w-full rounded-full object-cover" />
+                  ) : (
+                    <div className="grid h-full w-full place-items-center text-5xl font-black text-slate-400">
+                      {String((profile?.nickname || user.nickname || user.name || "U").charAt(0)).toUpperCase()}
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </div>
             <label className="mt-4 inline-flex cursor-pointer items-center rounded-2xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-700">
               {isUploadingPhoto ? "Subiendo..." : "Cambiar foto"}
