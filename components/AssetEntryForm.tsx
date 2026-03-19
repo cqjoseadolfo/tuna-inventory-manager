@@ -170,6 +170,15 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
     );
   }, [form.assetType, form.instrumentType, aiTags, tagsInput]);
 
+  const referenceCodePreview = useMemo(() => {
+    if (form.assetType !== "reconocimiento") return "REC-YYNN";
+    const year = Number(form.fabricationYear);
+    const yy = Number.isFinite(year) && year > 0
+      ? String(year % 100).padStart(2, "0")
+      : "YY";
+    return `REC-${yy}NN`;
+  }, [form.assetType, form.fabricationYear]);
+
   const getFieldClass = (value?: string | number | null) => {
     if (mode !== "ia" || !hasAiResult) return fc;
     return !value || String(value).trim() === "" ? fcWarn : fc;
@@ -572,7 +581,13 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                             ))}
                           </select>
                         </div>
-                        <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label><input className={getFieldClass(form.referenceCode)} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2601" /></div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label>
+                          <input className={fc} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder={referenceCodePreview} />
+                          {!form.referenceCode.trim() && (
+                            <p className="mt-1 text-xs text-slate-500">Se autogenera al guardar con formato {referenceCodePreview}.</p>
+                          )}
+                        </div>
                       </div>
                     )}
                     {form.assetType === "uniforme" && (
@@ -667,7 +682,13 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                       ))}
                     </select>
                   </div>
-                  <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label><input className={fc} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2601" /></div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label>
+                    <input className={fc} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder={referenceCodePreview} />
+                    {!form.referenceCode.trim() && (
+                      <p className="mt-1 text-xs text-slate-500">Se autogenera al guardar con formato {referenceCodePreview}.</p>
+                    )}
+                  </div>
                 </div>
               </div>
             )}

@@ -58,6 +58,25 @@ const allowedRecognitionDocumentTypes = new Set([
   "medalla",
 ]);
 
+const recognitionDocumentTypeAliases: Record<string, string> = {
+  diploma: "titulo",
+  titulacion: "titulo",
+  título: "titulo",
+  certificado: "certificado",
+  constancia: "certificado",
+  placa: "placa",
+  estandarte: "estandarte",
+  trofeo: "trofeo",
+  medalla: "medalla",
+};
+
+const normalizeRecognitionDocumentType = (value: unknown): string | null => {
+  const raw = String(value || "").trim().toLowerCase();
+  if (!raw) return null;
+  const mapped = recognitionDocumentTypeAliases[raw] || raw;
+  return allowedRecognitionDocumentTypes.has(mapped) ? mapped : null;
+};
+
 export async function POST(request: Request) {
   try {
     const formData = await request.formData();
@@ -207,10 +226,7 @@ Instrucciones:
       notes: String(parsed.notes || "").trim() || null,
       instrumentType: String(parsed.instrumentType || "").trim() || null,
       issueDate: String(parsed.issueDate || "").trim() || null,
-      documentType: (() => {
-        const normalized = String(parsed.documentType || "").trim().toLowerCase();
-        return allowedRecognitionDocumentTypes.has(normalized) ? normalized : null;
-      })(),
+      documentType: normalizeRecognitionDocumentType(parsed.documentType),
       tags: normalizeTags(parsed.tags),
     };
 
