@@ -41,7 +41,7 @@ export default function NewsletterCarousel({ items }: Props) {
   return (
     <section>
       <article
-        className="relative min-h-[180px] overflow-visible rounded-[2rem] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(36,0,255,0.24)] transition-all duration-300"
+        className="relative min-h-[180px] overflow-hidden rounded-[2rem] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(36,0,255,0.24)] transition-all duration-300"
         style={{ background: currentItem.backgroundColor }}
       >
         <div className="flex h-full flex-col justify-between gap-3">
@@ -67,43 +67,50 @@ export default function NewsletterCarousel({ items }: Props) {
             <span className="text-xs text-slate-300">No se pudo cargar imagen</span>
           </div>
         )}
+
+        {/* Navigation arrows overlay */}
+        {isMultiple && (
+          <>
+            <button
+              type="button"
+              onClick={goToPrevious}
+              className="absolute left-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm text-white transition hover:bg-white/25 z-10"
+              aria-label="Noticia anterior"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+
+            <button
+              type="button"
+              onClick={goToNext}
+              className="absolute right-4 top-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white/15 backdrop-blur-sm text-white transition hover:bg-white/25 z-10"
+              aria-label="Siguiente noticia"
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
       </article>
 
       {isMultiple && (
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <button
-            type="button"
-            onClick={goToPrevious}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
-            aria-label="Noticia anterior"
-          >
-            ←
-          </button>
-
-          <div className="flex gap-2">
-            {items.map((_, index) => (
-              <button
-                key={index}
-                type="button"
-                onClick={() => goToSlide(index)}
-                aria-label={`Ir a noticia ${index + 1}`}
-                className={`h-2 rounded-full transition ${
-                  index === currentIndex
-                    ? "w-8 bg-slate-900"
-                    : "w-2 bg-slate-300 hover:bg-slate-400"
-                }`}
-              />
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={goToNext}
-            className="flex h-10 w-10 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 transition hover:bg-slate-50"
-            aria-label="Siguiente noticia"
-          >
-            →
-          </button>
+        <div className="mt-3 flex justify-center gap-1.5">
+          {items.map((_, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => goToSlide(index)}
+              aria-label={`Ir a noticia ${index + 1}`}
+              className={`transition-all duration-200 rounded-full ${
+                index === currentIndex
+                  ? "h-2 w-8 bg-slate-900"
+                  : "h-2 w-2 bg-slate-300 hover:bg-slate-400"
+              }`}
+            />
+          ))}
         </div>
       )}
     </section>
