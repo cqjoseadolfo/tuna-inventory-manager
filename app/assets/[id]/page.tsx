@@ -458,8 +458,6 @@ export default function AssetDetailPage() {
         payload.issuer = editForm.issuer;
         payload.issueDate = editForm.issueDate;
         payload.documentType = editForm.documentType;
-        payload.referenceCode = editForm.referenceCode;
-        payload.reference_code = editForm.referenceCode;
       }
 
       if (asset.asset_type === "uniforme") {
@@ -873,10 +871,6 @@ export default function AssetDetailPage() {
                           <option value={editForm.documentType}>{editForm.documentType}</option>
                         ) : null}
                       </select>
-                    </label>
-                    <label className="grid gap-1 text-sm font-medium text-slate-700">
-                      Código de referencia
-                      <input value={editForm.referenceCode} onChange={(e) => setEditForm((prev) => ({ ...prev, referenceCode: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
                     </label>
                   </>
                 ) : null}
