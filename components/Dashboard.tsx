@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../app/context/AuthContext";
+import NewsletterCarousel, { type NewsletterItem } from "./NewsletterCarousel";
 
 type AssetItem = {
   id: string;
@@ -114,7 +115,6 @@ export default function Dashboard() {
 
   const { user, logout } = useAuth();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [planImageBroken, setPlanImageBroken] = useState(false);
   const [assets, setAssets] = useState<AssetItem[]>([]);
   const [isStatsLoading, setIsStatsLoading] = useState(true);
   const [statsError, setStatsError] = useState("");
@@ -934,34 +934,34 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section>
-          <article
-            className="relative min-h-[180px] overflow-visible rounded-[2rem] py-6 pl-6 pr-6 text-white shadow-[0_18px_30px_rgba(36,0,255,0.24)]"
-            style={{ background: "#007EFF" }}
-          >
-            <div className="flex h-full flex-col justify-between gap-3">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[#FFBF00]">Newsletter</p>
-                <h3 className="mt-2 text-[48px] font-black leading-[0.95]">Plan 2026</h3>
-              </div>
-              <p className="pr-[110px] text-[15px] leading-[1.3] text-blue-50">Sigue los ultimos cambios de los estatutos publicados.</p>
-            </div>
-
-            {!planImageBroken ? (
-              <img
-                src={plan2026ImageUrl}
-                alt="Plan 2026"
-                className="absolute bottom-0 -right-3 h-[200px] w-auto object-contain"
-                style={{ zIndex: 2 }}
-                onError={() => setPlanImageBroken(true)}
-              />
-            ) : (
-              <div className="absolute bottom-0 right-3 grid h-[120px] w-[120px] place-items-center rounded-2xl border border-white/15 bg-white/5 px-3 py-3 text-center">
-                <span className="text-xs text-slate-300">No se pudo cargar imagen</span>
-              </div>
-            )}
-          </article>
-        </section>
+        <NewsletterCarousel
+          items={[
+            {
+              id: "plan-2026",
+              title: "Plan 2026",
+              description: "Sigue los últimos cambios de los estatutos publicados.",
+              imageUrl: plan2026ImageUrl,
+              backgroundColor: "#007EFF",
+              accentColor: "#FFBF00",
+            },
+            {
+              id: "encuentro-cochabamba",
+              title: "Encuentro Cochabamba",
+              description: "Únete a nuestro encuentro especial en Cochabamba con músicos de toda la región.",
+              imageUrl: "/api/ui/newsletter-image", 
+              backgroundColor: "#D97706",
+              accentColor: "#FCD34D",
+            },
+            {
+              id: "certamen-cajamarca",
+              title: "Certamen Cajamarca",
+              description: "Participa en el certamen musical anual de Cajamarca y demuestra tu talento.",
+              imageUrl: "/api/ui/newsletter-image",
+              backgroundColor: "#059669",
+              accentColor: "#6EE7B7",
+            },
+          ]}
+        />
 
         <section className="grid gap-3">
           <div className="grid w-full grid-cols-3 gap-1 rounded-[1.4rem] bg-slate-100 p-1 ring-1 ring-slate-200">
