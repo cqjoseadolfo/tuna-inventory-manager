@@ -1,10 +1,15 @@
 "use client";
 
-import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import Link from "next/link";
 
 type AssetType = "instrumento" | "reconocimiento" | "uniforme" | "otro";
 type EntryMode = "ia" | "manual";
+
+type RecognitionDocumentTypeOption = {
+  code: string;
+  label: string;
+};
 
 interface Props {
   createdByEmail: string;
@@ -81,6 +86,15 @@ const assetTypeLabel: Record<AssetType, string> = {
   otro: "Otro",
 };
 
+const fallbackRecognitionDocumentTypes: RecognitionDocumentTypeOption[] = [
+  { code: "trofeo", label: "Trofeo" },
+  { code: "certificado", label: "Certificado" },
+  { code: "titulo", label: "Título" },
+  { code: "estandarte", label: "Estandarte" },
+  { code: "placa", label: "Placa" },
+  { code: "medalla", label: "Medalla" },
+];
+
 export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props) {
   const [mode, setMode] = useState<EntryMode>("ia");
   const [form, setForm] = useState<FormState>(initialState);
@@ -95,6 +109,41 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
   const [photoName, setPhotoName] = useState("");
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
+  const [recognitionDocumentTypes, setRecognitionDocumentTypes] = useState<RecognitionDocumentTypeOption[]>(
+    fallbackRecognitionDocumentTypes
+  );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRecognitionDocumentTypes = async () => {
+      try {
+        const response = await fetch("/api/recognition-document-types", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) return;
+
+        const items = Array.isArray(data?.items)
+          ? data.items
+              .map((item: any) => ({
+                code: String(item?.code || "").trim().toLowerCase(),
+                label: String(item?.label || "").trim(),
+              }))
+              .filter((item: RecognitionDocumentTypeOption) => item.code && item.label)
+          : [];
+
+        if (isMounted && items.length > 0) {
+          setRecognitionDocumentTypes(items);
+        }
+      } catch {
+        // Keep fallback catalog when the API is not available.
+      }
+    };
+
+    loadRecognitionDocumentTypes();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const parseEditableTags = (value: string) =>
     value
@@ -169,6 +218,9 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
         issueDate:
           (suggestedType || prev.assetType) === "reconocimiento"
             ? suggestion.issueDate || prev.issueDate : prev.issueDate,
+        documentType:
+          (suggestedType || prev.assetType) === "reconocimiento"
+            ? (suggestion.documentType || prev.documentType) : prev.documentType,
       }));
       const incomingTags = Array.isArray(suggestion.tags)
         ? suggestion.tags.map((t: string) => String(t || "").trim().toLowerCase()).filter(Boolean) : [];
@@ -236,7 +288,7 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
         issuer: form.issuer || undefined,
         issueDate: form.issueDate || undefined,
         documentType: form.documentType || undefined,
-        referenceCode: form.referenceCode || undefined,
+        referenceCode: data.referenceCode || form.referenceCode || undefined,
         size: form.size || undefined,
         hasCinta: form.hasCinta || undefined,
         hasJubon: form.hasJubon || undefined,
@@ -511,8 +563,16 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                       <div className="grid gap-4 md:grid-cols-2">
                         <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Emisor</label><input className={getFieldClass(form.issuer)} value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." /></div>
                         <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Fecha de emisión</label><input className={getFieldClass(form.issueDate)} type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} /></div>
-                        <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo de documento</label><input className={getFieldClass(form.documentType)} value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" /></div>
-                        <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label><input className={getFieldClass(form.referenceCode)} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" /></div>
+                        <div>
+                          <label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo de documento</label>
+                          <select className={getFieldClass(form.documentType)} value={form.documentType} onChange={(e) => update("documentType", e.target.value)}>
+                            <option value="">Selecciona tipo</option>
+                            {recognitionDocumentTypes.map((item) => (
+                              <option key={item.code} value={item.code}>{item.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label><input className={getFieldClass(form.referenceCode)} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2601" /></div>
                       </div>
                     )}
                     {form.assetType === "uniforme" && (
@@ -598,8 +658,16 @@ export default function AssetEntryForm({ createdByEmail, createdByLabel }: Props
                 <div className="grid gap-4 md:grid-cols-2">
                   <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Emisor</label><input className={fc} value={form.issuer} onChange={(e) => update("issuer", e.target.value)} placeholder="Municipalidad de..." /></div>
                   <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Fecha de emisión</label><input className={fc} type="date" value={form.issueDate} onChange={(e) => update("issueDate", e.target.value)} /></div>
-                  <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo de documento</label><input className={fc} value={form.documentType} onChange={(e) => update("documentType", e.target.value)} placeholder="Diploma" /></div>
-                  <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label><input className={fc} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2026-001" /></div>
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-slate-700">Tipo de documento</label>
+                    <select className={fc} value={form.documentType} onChange={(e) => update("documentType", e.target.value)}>
+                      <option value="">Selecciona tipo</option>
+                      {recognitionDocumentTypes.map((item) => (
+                        <option key={item.code} value={item.code}>{item.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div><label className="mb-1.5 block text-sm font-medium text-slate-700">Código de referencia</label><input className={fc} value={form.referenceCode} onChange={(e) => update("referenceCode", e.target.value)} placeholder="REC-2601" /></div>
                 </div>
               </div>
             )}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruDate, getPeruISOString } from "@/app/lib/time";
 import { getAssetStatusesFromDb, getDefaultAssetStatusCode, normalizeStatusCode } from "@/app/lib/assetStatus";
+import { getRecognitionDocumentTypesFromDb } from "@/app/lib/recognitionDocumentType";
 
 export const runtime = "edge";
 
@@ -326,6 +327,19 @@ export async function POST(request: Request) {
     }
 
     if (assetType === "reconocimiento") {
+      const allowedDocumentTypes = new Set((await getRecognitionDocumentTypesFromDb(db)).map((item) => item.code));
+      const normalizedDocumentType = recognition?.documentType
+        ? String(recognition.documentType).trim().toLowerCase()
+        : null;
+      const normalizedReferenceCode = recognition?.referenceCode
+        ? String(recognition.referenceCode).trim()
+        : null;
+      const finalReferenceCode = normalizedReferenceCode || generatedCode;
+
+      if (normalizedDocumentType && !allowedDocumentTypes.has(normalizedDocumentType)) {
+        return NextResponse.json({ error: "Tipo de documento de reconocimiento inválido" }, { status: 400 });
+      }
+
       await db
         .prepare(
           `INSERT INTO asset_recognitions (asset_id, issuer, issue_date, document_type, reference_code)
@@ -335,8 +349,8 @@ export async function POST(request: Request) {
           assetId,
           recognition?.issuer || "No identificado",
           recognition?.issueDate ?? null,
-          recognition?.documentType ?? null,
-          recognition?.referenceCode ?? null
+          normalizedDocumentType,
+          finalReferenceCode
         )
         .run();
     }
@@ -393,6 +407,10 @@ export async function POST(request: Request) {
       assetCode: assetIdentifier,
       status: finalStatus,
       holderName: holderDisplayName,
+      referenceCode:
+        assetType === "reconocimiento"
+          ? ((recognition?.referenceCode && String(recognition.referenceCode).trim()) || generatedCode)
+          : null,
     });
   } catch (error: any) {
     console.error("Error creating asset:", error);

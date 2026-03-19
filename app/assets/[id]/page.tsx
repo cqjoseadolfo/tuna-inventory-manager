@@ -105,6 +105,20 @@ interface EditFormState {
   tagsInput: string;
 }
 
+interface RecognitionDocumentTypeOption {
+  code: string;
+  label: string;
+}
+
+const fallbackRecognitionDocumentTypes: RecognitionDocumentTypeOption[] = [
+  { code: "trofeo", label: "Trofeo" },
+  { code: "certificado", label: "Certificado" },
+  { code: "titulo", label: "Título" },
+  { code: "estandarte", label: "Estandarte" },
+  { code: "placa", label: "Placa" },
+  { code: "medalla", label: "Medalla" },
+];
+
 const statusLabel: Record<string, string> = {
   en_uso: "En uso",
   mantenimiento: "Mantenimiento",
@@ -158,6 +172,9 @@ export default function AssetDetailPage() {
   const [editFeedback, setEditFeedback] = useState("");
   const [movementFilter, setMovementFilter] = useState("");
   const [isPhotoBroken, setIsPhotoBroken] = useState(false);
+  const [recognitionDocumentTypes, setRecognitionDocumentTypes] = useState<RecognitionDocumentTypeOption[]>(
+    fallbackRecognitionDocumentTypes
+  );
   const [editForm, setEditForm] = useState<EditFormState>({
     name: "",
     photoUrl: "",
@@ -225,6 +242,38 @@ export default function AssetDetailPage() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadRecognitionDocumentTypes = async () => {
+      try {
+        const response = await fetch("/api/recognition-document-types", { cache: "no-store" });
+        const data = await response.json();
+        if (!response.ok) return;
+
+        const items = Array.isArray(data?.items)
+          ? data.items
+              .map((item: any) => ({
+                code: String(item?.code || "").trim().toLowerCase(),
+                label: String(item?.label || "").trim(),
+              }))
+              .filter((item: RecognitionDocumentTypeOption) => item.code && item.label)
+          : [];
+
+        if (isMounted && items.length > 0) {
+          setRecognitionDocumentTypes(items);
+        }
+      } catch {
+        // Keep fallback options if endpoint is unavailable.
+      }
+    };
+
+    loadRecognitionDocumentTypes();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   useEffect(() => {
     loadAsset();
@@ -815,7 +864,15 @@ export default function AssetDetailPage() {
                     </label>
                     <label className="grid gap-1 text-sm font-medium text-slate-700">
                       Tipo de documento
-                      <input value={editForm.documentType} onChange={(e) => setEditForm((prev) => ({ ...prev, documentType: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2" />
+                      <select value={editForm.documentType} onChange={(e) => setEditForm((prev) => ({ ...prev, documentType: e.target.value }))} className="rounded-xl border border-slate-200 px-3 py-2">
+                        <option value="">Selecciona tipo</option>
+                        {recognitionDocumentTypes.map((item) => (
+                          <option key={item.code} value={item.code}>{item.label}</option>
+                        ))}
+                        {editForm.documentType && !recognitionDocumentTypes.some((item) => item.code === editForm.documentType) ? (
+                          <option value={editForm.documentType}>{editForm.documentType}</option>
+                        ) : null}
+                      </select>
                     </label>
                     <label className="grid gap-1 text-sm font-medium text-slate-700">
                       Código de referencia

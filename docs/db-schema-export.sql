@@ -1,7 +1,7 @@
 PRAGMA defer_foreign_keys=TRUE;
 CREATE TABLE users (     id TEXT PRIMARY KEY,     email TEXT UNIQUE NOT NULL,     full_name TEXT,     picture TEXT,     nickname TEXT,     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP , first_name TEXT, last_name TEXT, birth_date TEXT, dni TEXT, baptism_date TEXT, bio TEXT, profession TEXT, profile_picture_url TEXT, user_rank TEXT);
 CREATE TABLE login_logs (     id TEXT PRIMARY KEY,     user_id TEXT NOT NULL,     login_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,     FOREIGN KEY (user_id) REFERENCES users(id) );
-CREATE TABLE assets (   id TEXT PRIMARY KEY,   asset_type TEXT NOT NULL CHECK (     asset_type IN ('instrumento', 'reconocimiento', 'uniforme', 'otro')   ),   name TEXT NOT NULL,   photo_url TEXT NOT NULL,   current_value REAL NOT NULL DEFAULT 0 CHECK (current_value >= 0),   status TEXT NOT NULL DEFAULT 'disponible' CHECK (     status IN ('disponible', 'bajo_responsabilidad', 'solicitado', 'mantenimiento')   ),   notes TEXT,   created_by_user_id TEXT,   created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),   updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP) , fabrication_year INTEGER, holder_user_id TEXT);
+CREATE TABLE assets (   id TEXT PRIMARY KEY,   asset_type TEXT NOT NULL CHECK (     asset_type IN ('instrumento', 'reconocimiento', 'uniforme', 'otro')   ),   name TEXT NOT NULL,   photo_url TEXT NOT NULL,   current_value REAL NOT NULL DEFAULT 0 CHECK (current_value >= 0),   status TEXT NOT NULL DEFAULT 'en_uso',   notes TEXT,   created_by_user_id TEXT,   created_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP),   updated_at TEXT NOT NULL DEFAULT (CURRENT_TIMESTAMP) , fabrication_year INTEGER, holder_user_id TEXT,   FOREIGN KEY (status) REFERENCES asset_status_catalog(code),   FOREIGN KEY (holder_user_id) REFERENCES users(id));
 CREATE TABLE asset_instruments (   asset_id TEXT PRIMARY KEY,   instrument_type TEXT NOT NULL,   brand TEXT NOT NULL,   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE );
 CREATE TABLE asset_recognitions (   asset_id TEXT PRIMARY KEY,   issuer TEXT NOT NULL,   issue_date TEXT,   document_type TEXT,   reference_code TEXT,   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE );
 CREATE TABLE asset_uniforms (   asset_id TEXT PRIMARY KEY,   size TEXT,   has_cinta INTEGER NOT NULL DEFAULT 0 CHECK (has_cinta IN (0,1)),   has_jubon INTEGER NOT NULL DEFAULT 0 CHECK (has_jubon IN (0,1)),   has_greguesco INTEGER NOT NULL DEFAULT 0 CHECK (has_greguesco IN (0,1)),   is_complete INTEGER GENERATED ALWAYS AS (     CASE       WHEN has_cinta = 1 AND has_jubon = 1 AND has_greguesco = 1 THEN 1       ELSE 0     END   ) VIRTUAL,   FOREIGN KEY (asset_id) REFERENCES assets(id) ON DELETE CASCADE );
@@ -12,6 +12,7 @@ CREATE TABLE asset_requests (   id TEXT PRIMARY KEY,   asset_id TEXT NOT NULL,  
 CREATE TABLE asset_movements (   id TEXT PRIMARY KEY,   asset_id TEXT NOT NULL,   movement_type TEXT NOT NULL,   from_user_id TEXT,   to_user_id TEXT,   request_id TEXT,   notes TEXT,   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   FOREIGN KEY (asset_id) REFERENCES assets(id),   FOREIGN KEY (from_user_id) REFERENCES users(id),   FOREIGN KEY (to_user_id) REFERENCES users(id),   FOREIGN KEY (request_id) REFERENCES asset_requests(id) );
 CREATE TABLE asset_field_edit_logs (   id TEXT PRIMARY KEY,   asset_id TEXT NOT NULL,   field_name TEXT NOT NULL,   old_value TEXT,   new_value TEXT,   edited_by_user_id TEXT NOT NULL,   edited_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   FOREIGN KEY (asset_id) REFERENCES assets(id),   FOREIGN KEY (edited_by_user_id) REFERENCES users(id) );
 CREATE TABLE asset_status_catalog (   code TEXT PRIMARY KEY,   label TEXT NOT NULL,   is_default INTEGER NOT NULL DEFAULT 0,   is_active INTEGER NOT NULL DEFAULT 1,   sort_order INTEGER NOT NULL DEFAULT 100,   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP );
+CREATE TABLE recognition_document_types (   code TEXT PRIMARY KEY,   label TEXT NOT NULL,   is_active INTEGER NOT NULL DEFAULT 1,   sort_order INTEGER NOT NULL DEFAULT 100,   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP );
 CREATE INDEX idx_assets_type ON assets(asset_type);
 CREATE INDEX idx_assets_status ON assets(status);
 CREATE INDEX idx_assets_created_at ON assets(created_at);
@@ -27,6 +28,7 @@ CREATE INDEX idx_asset_requests_requester_status   ON asset_requests (requester_
 CREATE INDEX idx_asset_field_edit_logs_asset_time   ON asset_field_edit_logs (asset_id, edited_at DESC);
 CREATE INDEX idx_asset_field_edit_logs_editor_time   ON asset_field_edit_logs (edited_by_user_id, edited_at DESC);
 CREATE INDEX idx_asset_status_catalog_active_sort   ON asset_status_catalog (is_active, sort_order);
+CREATE INDEX idx_recognition_document_types_active_sort ON recognition_document_types (is_active, sort_order);
 
 -- Basic configuration seed data (safe to keep for disaster recovery)
 INSERT INTO asset_status_catalog (code, label, is_default, is_active, sort_order, created_at) VALUES('en_uso','En uso',1,1,10,'2026-03-17 18:13:38');
@@ -35,3 +37,9 @@ INSERT INTO asset_status_catalog (code, label, is_default, is_active, sort_order
 INSERT INTO asset_status_catalog (code, label, is_default, is_active, sort_order, created_at) VALUES('pendiente_recepcion','Pendiente de aceptar recepcion',0,1,40,'2026-03-17 18:13:38');
 INSERT INTO asset_status_catalog (code, label, is_default, is_active, sort_order, created_at) VALUES('mantenimiento','Mantenimiento',0,1,50,'2026-03-17 18:13:38');
 INSERT INTO asset_status_catalog (code, label, is_default, is_active, sort_order, created_at) VALUES('baja','Baja',0,1,60,'2026-03-17 18:13:38');
+INSERT INTO recognition_document_types (code, label, is_active, sort_order, created_at) VALUES('trofeo','Trofeo',1,10,'2026-03-18 00:00:00');
+INSERT INTO recognition_document_types (code, label, is_active, sort_order, created_at) VALUES('certificado','Certificado',1,20,'2026-03-18 00:00:00');
+INSERT INTO recognition_document_types (code, label, is_active, sort_order, created_at) VALUES('grillete','Grillete',1,30,'2026-03-18 00:00:00');
+INSERT INTO recognition_document_types (code, label, is_active, sort_order, created_at) VALUES('estandarte','Estandarte',1,40,'2026-03-18 00:00:00');
+INSERT INTO recognition_document_types (code, label, is_active, sort_order, created_at) VALUES('placa','Placa',1,50,'2026-03-18 00:00:00');
+INSERT INTO recognition_document_types (code, label, is_active, sort_order, created_at) VALUES('medalla','Medalla',1,60,'2026-03-18 00:00:00');

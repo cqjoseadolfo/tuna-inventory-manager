@@ -9,6 +9,7 @@ type AiSuggestion = {
   notes?: string | null;
   instrumentType?: string | null;
   issueDate?: string | null;
+  documentType?: string | null;
   tags?: string[];
 };
 
@@ -47,6 +48,15 @@ const normalizeTags = (value: unknown): string[] => {
     .filter(Boolean)
     .map((tag) => (tag.startsWith("#") ? tag : `#${tag}`));
 };
+
+const allowedRecognitionDocumentTypes = new Set([
+  "trofeo",
+  "certificado",
+  "titulo",
+  "estandarte",
+  "placa",
+  "medalla",
+]);
 
 export async function POST(request: Request) {
   try {
@@ -96,6 +106,7 @@ export async function POST(request: Request) {
   "notes": "descripcion corta del estado visual: limpio, golpes, rayones, faltantes, deterioro, etc",
   "instrumentType": "si es instrumento, nombre exacto del instrumento segun tu conocimiento (charango, bandurria, laud, guitarra, violin, pandereta, etc) o null",
   "issueDate": "si parece reconocimiento con fecha legible usar YYYY-MM-DD, si no null",
+  "documentType": "si es reconocimiento usar una opcion exacta: trofeo|certificado|titulo|estandarte|placa|medalla; si no aplica null",
   "tags": ["#color_negro", "#madera", "#instrumento_cuerdas", "#percusion", ...]
 }
 
@@ -104,6 +115,7 @@ Instrucciones:
 - Solo si despues de analizar visualmente aun tienes duda genuina entre si el instrumento es una BANDURRIA o una BANDOLA (son visualmente similares), aplica este criterio de desempate: la bandurria tiene caja mas plana y mastil mas corto y ancho con 12 cuerdas y trastes muy juntos; la bandola tiende a tener caja mas profunda y mastil ligeramente mas largo. En ese caso especifico y solo ese, si aun hay duda, prefiere bandurria porque el contexto es una tuna universitaria espanola.
 - Si no estas seguro del tipo de activo (instrumento/reconocimiento/uniforme/otro), usa "otro".
 - Si es uniforme, deja instrumentType null e issueDate null.
+- Si es reconocimiento, intenta proponer documentType usando exactamente una opcion del catalogo.
 - Incluye tags de colores visibles, material y clasificacion musical cuando aplique.
 - No agregues texto fuera del JSON.`;
 
@@ -195,6 +207,10 @@ Instrucciones:
       notes: String(parsed.notes || "").trim() || null,
       instrumentType: String(parsed.instrumentType || "").trim() || null,
       issueDate: String(parsed.issueDate || "").trim() || null,
+      documentType: (() => {
+        const normalized = String(parsed.documentType || "").trim().toLowerCase();
+        return allowedRecognitionDocumentTypes.has(normalized) ? normalized : null;
+      })(),
       tags: normalizeTags(parsed.tags),
     };
 

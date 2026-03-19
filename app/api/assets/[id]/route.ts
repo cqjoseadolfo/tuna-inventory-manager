@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDbBinding, isMissingTableError } from "@/app/lib/db";
 import { getPeruISOString } from "@/app/lib/time";
 import { getAssetStatusesFromDb, normalizeStatusCode, updateAssetStatusWithFallback } from "@/app/lib/assetStatus";
+import { getRecognitionDocumentTypesFromDb } from "@/app/lib/recognitionDocumentType";
 
 export const runtime = "edge";
 
@@ -369,9 +370,16 @@ export async function PATCH(request: Request, { params }: { params: { id: string
         .bind(assetId)
         .first<any>();
 
+      const allowedDocumentTypes = new Set((await getRecognitionDocumentTypesFromDb(db)).map((item) => item.code));
+
       const nextIssuer = Object.prototype.hasOwnProperty.call(body, "issuer") ? normalizeString(body?.issuer) : current?.issuer ?? null;
       const nextIssueDate = Object.prototype.hasOwnProperty.call(body, "issueDate") ? normalizeString(body?.issueDate) : current?.issue_date ?? null;
-      const nextDocumentType = Object.prototype.hasOwnProperty.call(body, "documentType") ? normalizeString(body?.documentType) : current?.document_type ?? null;
+      const rawNextDocumentType = Object.prototype.hasOwnProperty.call(body, "documentType") ? normalizeString(body?.documentType) : current?.document_type ?? null;
+      const nextDocumentType = rawNextDocumentType ? rawNextDocumentType.toLowerCase() : null;
+
+      if (nextDocumentType && !allowedDocumentTypes.has(nextDocumentType)) {
+        return NextResponse.json({ error: "Tipo de documento de reconocimiento inválido" }, { status: 400 });
+      }
       const hasReferenceCode =
         Object.prototype.hasOwnProperty.call(body, "referenceCode") ||
         Object.prototype.hasOwnProperty.call(body, "reference_code");
