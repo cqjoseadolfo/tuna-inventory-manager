@@ -191,6 +191,17 @@ html {
     height: 24px;
 }
 
+.newsletter-track {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    touch-action: pan-x;
+    -webkit-overflow-scrolling: touch;
+}
+
+.newsletter-track::-webkit-scrollbar {
+    display: none;
+}
+
 .dashboard-container {
     width: 100%;
     max-width: 62rem;
